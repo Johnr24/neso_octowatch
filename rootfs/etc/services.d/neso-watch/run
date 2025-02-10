@@ -1,0 +1,11 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start the NESO watch service
+# ==============================================================================
+
+# Set the check interval from config
+export CHECK_INTERVAL=$(bashio::config 'check_interval')
+export DEBUG=$(bashio::config 'debug')
+
+cd /app
+exec python3 nesoscan.py 

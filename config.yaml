@@ -1,0 +1,22 @@
+name: "NESO Octopus Watch"
+version: "1.0.0"
+slug: "neso_octopus_watch"
+description: "Monitor Octopus Energy participation in NESO"
+url: "https://github.com/yourusername/neso_octowatch"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+init: false
+map:
+  - share:rw
+startup: application
+boot: auto
+options:
+  check_interval: 300
+  debug: false
+schema:
+  check_interval: int
+  debug: bool 
