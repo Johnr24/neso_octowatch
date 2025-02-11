@@ -275,12 +275,23 @@ def check_utilization():
                 "state": latest.get('Status', 'UNKNOWN'),
                 "attributes": {
                     "last_checked": datetime.now().isoformat(),
-                    "latest_delivery_date": convert_to_serializable(latest.get('Delivery Date')),
-                    "latest_time_from": convert_to_serializable(latest.get('From')),
-                    "latest_time_to": convert_to_serializable(latest.get('To')),
-                    "latest_price": convert_to_serializable(latest.get('Utilisation Price GBP per MWh')),
-                    "latest_volume": convert_to_serializable(latest.get('DFS Volume MW'))
                 }
+            },
+            "octopus_neso_delivery_date": {
+                "state": convert_to_serializable(latest.get('Delivery Date')),
+                "attributes": {}
+            },
+            "octopus_neso_time_window": {
+                "state": f"{convert_to_serializable(latest.get('From'))} - {convert_to_serializable(latest.get('To'))}",
+                "attributes": {}
+            },
+            "octopus_neso_price": {
+                "state": convert_to_serializable(latest.get('Utilisation Price GBP per MWh')),
+                "attributes": {}
+            },
+            "octopus_neso_volume": {
+                "state": convert_to_serializable(latest.get('DFS Volume MW')),
+                "attributes": {}
             },
             "octopus_neso_highest_accepted": {
                 "state": convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh']) if highest_accepted is not None else "No accepted bids",
@@ -288,37 +299,14 @@ def check_utilization():
                     "delivery_date": convert_to_serializable(highest_accepted['Delivery Date']) if highest_accepted is not None else None,
                     "time_from": convert_to_serializable(highest_accepted['From']) if highest_accepted is not None else None,
                     "time_to": convert_to_serializable(highest_accepted['To']) if highest_accepted is not None else None,
-                    "volume": convert_to_serializable(highest_accepted['DFS Volume MW']) if highest_accepted is not None else None
-                }
-            },
-            "octopus_neso_utilization_details": {
-                "state": format_utilization_data(df),
-                "attributes": {
-                    "raw_data": [convert_to_serializable(record) for record in df.to_dict('records')]
+                    "volume": convert_to_serializable(highest_accepted['DFS Volume MW']) if highest_accepted is not None else None,
+                    "last_update": datetime.now().isoformat()
                 }
             }
         }
         
         # Save states for Home Assistant
         save_states(states)
-        states["octopus_neso_utilization_status"] = {
-            "state": status
-        }
-        states["octopus_neso_latest_delivery_date"] = {
-            "state": convert_to_serializable(latest.get('Delivery Date'))
-        }
-        states["octopus_neso_latest_time_from"] = {
-            "state": convert_to_serializable(latest.get('From'))
-        }
-        states["octopus_neso_latest_time_to"] = {
-            "state": convert_to_serializable(latest.get('To'))
-        }
-        states["octopus_neso_latest_price"] = {
-            "state": convert_to_serializable(latest.get('Utilisation Price GBP per MWh'))
-        }
-        states["octopus_neso_latest_volume"] = {
-            "state": convert_to_serializable(latest.get('DFS Volume MW'))
-        }
         if highest_accepted is not None:
             states["octopus_neso_highest_accepted_price"] = {
                 "state": convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh'])
