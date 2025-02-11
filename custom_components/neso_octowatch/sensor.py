@@ -82,10 +82,8 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
         elif sensor_type == SENSOR_HIGHEST_ACCEPTED:
-            self._attr_native_unit_of_measurement = "GBP/MWh"
-            self._attr_device_class = SensorDeviceClass.MONETARY
-            self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_display_precision = 2
+            # Will be set dynamically based on value type
+            pass
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -130,7 +128,24 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                         else:
                             self._attr_native_value = state_value
                     else:
-                        self._attr_native_value = state_value
+                        if self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
+                            # For highest accepted, only set monetary attributes if it's a number
+                            if isinstance(state_value, (int, float)) or (
+                                isinstance(state_value, str) and 
+                                state_value.replace('.', '', 1).isdigit()
+                            ):
+                                self._attr_native_value = float(state_value)
+                                self._attr_native_unit_of_measurement = "GBP/MWh"
+                                self._attr_device_class = SensorDeviceClass.MONETARY
+                                self._attr_state_class = SensorStateClass.MEASUREMENT
+                                self._attr_suggested_display_precision = 2
+                            else:
+                                self._attr_native_value = state_value
+                                self._attr_native_unit_of_measurement = None
+                                self._attr_device_class = None
+                                self._attr_state_class = None
+                        else:
+                            self._attr_native_value = state_value
                 except (ValueError, TypeError):
                     self._attr_native_value = state_value
                 
