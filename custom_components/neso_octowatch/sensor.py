@@ -58,7 +58,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
         # Set appropriate device class and units based on sensor type
         if sensor_type == SENSOR_UTILIZATION:
             self._attr_native_unit_of_measurement = "%"
-            self._attr_device_class = "power_factor"
+            self._attr_device_class = None  # Remove device class since it can be text or numeric
         elif sensor_type == SENSOR_DELIVERY_DATE:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
         elif sensor_type == SENSOR_TIME_WINDOW:
@@ -86,7 +86,16 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
             key = self._sensor_type
             if key in self.coordinator.data:
                 sensor_data = self.coordinator.data[key]
-                self._attr_native_value = sensor_data.get("state")
+                state_value = sensor_data.get("state")
+                
+                # Handle utilization value specifically
+                if self._sensor_type == SENSOR_UTILIZATION:
+                    if isinstance(state_value, (int, float)):
+                        self._attr_native_value = float(state_value)
+                    else:
+                        self._attr_native_value = state_value
+                else:
+                    self._attr_native_value = state_value
                 self._attr_extra_state_attributes = sensor_data.get("attributes", {})
             else:
                 self._attr_native_value = None
