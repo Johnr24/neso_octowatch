@@ -8,9 +8,11 @@
         }
       },
       "utilization": {
+        "name": "Utilization Status",
         "state": {
-          "Accepted": "Accepted",
-          "Rejected": "Rejected"
+          "UNKNOWN": "Unknown",
+          "Rejected": "Rejected (Not Accepted)",
+          "Accepted": "Accepted (Active)"
         }
       }
     }
@@ -24,7 +26,7 @@
         },
         "utilization": {
           "name": "Utilization",
-          "description": "The current status of the DFS session bid, indicating whether it has been accepted or rejected by the grid operator"
+          "description": "Current DFS session bid status - Accepted means the session is active, Rejected means it was not selected"
         }
       }
     }

@@ -74,6 +74,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_translation_key = "utilization"
             self._attr_entity_registry_enabled_default = True
             self._attr_device_class = None  # Text-based state
+            self._attr_native_value = STATUS_UNKNOWN  # Set initial state
         elif sensor_type == SENSOR_DELIVERY_DATE:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
         elif sensor_type == SENSOR_TIME_WINDOW:
@@ -91,6 +92,11 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass.POWER
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
+        
+        if sensor_type == SENSOR_UTILIZATION:
+            self._attr_options = VALID_STATUSES
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_state_class = None
 
     @callback
     def _handle_coordinator_update(self) -> None:
