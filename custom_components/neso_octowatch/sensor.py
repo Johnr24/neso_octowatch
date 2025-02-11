@@ -111,14 +111,21 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                     elif self._sensor_type == SENSOR_DELIVERY_DATE:
                         if isinstance(state_value, str):
                             try:
-                                # Try different date formats
+                                # Strip any timezone info first as we'll add UTC later
+                                _LOGGER.debug("Processing delivery date: %s", state_value)
+                                clean_value = state_value.split('+')[0].strip()
+                                clean_value = clean_value.split('.')[0].strip()  # Remove any milliseconds
                                 try:
-                                    # Try parsing with time
-                                    dt = datetime.strptime(state_value, "%d %B %Y at %H:%M")
+                                    # Try ISO format first
+                                    dt = datetime.fromisoformat(clean_value)
                                 except ValueError:
-                                    # Fallback to date-only format
-                                    dt = datetime.strptime(state_value, "%Y-%m-%d")
+                                    try:
+                                        # Fallback to basic date format
+                                        dt = datetime.strptime(clean_value, "%Y-%m-%d")
+                                    except ValueError:
+                                        dt = datetime.strptime(clean_value, "%d %B %Y")
                                 dt = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
+                                _LOGGER.debug("Parsed delivery date: %s", dt)
                                 self._attr_native_value = dt
                             except ValueError:
                                 self._attr_native_value = None
@@ -148,7 +155,18 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                 
                 self._attr_extra_state_attributes = sensor_data.get("attributes", {})
             else:
-                self._attr_native_value = None
+                # For delivery date, try to get from highest accepted attributes if main state is null
+                if (self._sensor_type == SENSOR_DELIVERY_DATE and 
+                    "octopus_neso_highest_accepted" in self.coordinator.data):
+                    highest_accepted = self.coordinator.data["octopus_neso_highest_accepted"]
+                    if "attributes" in highest_accepted:
+                        delivery_date = highest_accepted["attributes"].get("delivery_date")
+                        _LOGGER.debug("Found delivery date in highest accepted: %s", delivery_date)
+                        if delivery_date:
+                            try:
+                                self._attr_native_value = datetime.fromisoformat(delivery_date.split('+')[0]).replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
+                            except ValueError:
+                                self._attr_native_value = None
                 self._attr_extra_state_attributes = {}
         
         self.async_write_ha_state()

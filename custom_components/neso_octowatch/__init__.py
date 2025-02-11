@@ -108,6 +108,15 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
             
             # Get the most recent entry
             latest = df.iloc[0]
+            # Convert and sort dates
+            df['Delivery Date'] = pd.to_datetime(df['Delivery Date'])
+            
+            # Filter for dates from today onwards
+            today = pd.Timestamp.now().normalize()
+            future_df = df[df['Delivery Date'] >= today]
+            
+            # Use the earliest future date or most recent past date if no future dates
+            latest = future_df.iloc[0] if not future_df.empty else df.iloc[0]
             
             # Find highest accepted bid
             accepted_bids = df[df['Status'] == 'ACCEPTED']
@@ -115,6 +124,14 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
             if not accepted_bids.empty:
                 highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
             
+            _LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
+            _LOGGER.debug("Today's date: %s", today)
+            _LOGGER.debug("Future dates available: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
+            _LOGGER.debug("Selected latest date: %s", latest['Delivery Date'])
+            if highest_accepted is not None:
+                _LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
+            
+            delivery_date = latest['Delivery Date']
             states = {
                 "octopus_neso_utilization": {
                     "state": latest.get('Status', 'UNKNOWN'),
@@ -123,8 +140,14 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                     }
                 },
                 "octopus_neso_delivery_date": {
-                    "state": self._convert_to_serializable(latest.get('Delivery Date')),
-                    "attributes": {}
+                    "state": self._convert_to_serializable(delivery_date),
+                    "attributes": {
+                        "raw_date": latest.get('Delivery Date'),
+                        "time_from": self._convert_to_serializable(latest.get('From')),
+                        "time_to": self._convert_to_serializable(latest.get('To')),
+                        "volume": self._convert_to_serializable(latest.get('DFS Volume MW')),
+                        "last_update": datetime.now().isoformat()
+                    }
                 },
                 "octopus_neso_time_window": {
                     "state": f"{self._convert_to_serializable(latest.get('From'))} - {self._convert_to_serializable(latest.get('To'))}",
@@ -196,6 +219,16 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                 
             data = json_response["result"]
             df = pd.DataFrame(data["records"])
+
+            if not df.empty:
+                # Convert and sort dates
+                df['Delivery Date'] = pd.to_datetime(df['Delivery Date'])
+                # Filter for dates from today onwards
+                today = pd.Timestamp.now().normalize()
+                future_df = df[df['Delivery Date'] >= today]
+                
+                _LOGGER.debug("Bids - All dates: %s", df['Delivery Date'].unique())
+                _LOGGER.debug("Bids - Future dates: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
             
             states = {
                 "octopus_neso_status": {
@@ -204,7 +237,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                         "last_checked": datetime.now().isoformat(),
                         "entry_count": len(df) if not df.empty else 0,
                         "service_type": self._convert_to_serializable(df['Service Requirement Type'].iloc[0]) if not df.empty else None,
-                        "dispatch_type": self._convert_to_serializable(df['Dispatch Type'].iloc[0]) if not df.empty else None,
+                        "dispatch_type": self._convert_to_serializable(future_df['Dispatch Type'].iloc[0] if not future_df.empty else df['Dispatch Type'].iloc[0]) if not df.empty else None,
                         "most_recent_date": self._convert_to_serializable(df['Delivery Date'].max()) if not df.empty else None
                     }
                 },
@@ -240,6 +273,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         df_sorted = df.sort_values(['Delivery Date', 'From'])
         # Convert Delivery Date to datetime if it's not already
         df_sorted['Delivery Date'] = pd.to_datetime(df_sorted['Delivery Date'])
+        _LOGGER.debug("Available delivery dates: %s", df_sorted['Delivery Date'].unique())
         # Try to get the nearest future date
         future_dates = df_sorted[df_sorted['Delivery Date'] >= pd.Timestamp.now().normalize()]
         if not future_dates.empty:
@@ -247,6 +281,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         else:
             # If no future dates, get the most recent past date
             most_recent_date = df_sorted['Delivery Date'].max()
+        _LOGGER.debug("Selected delivery date: %s", most_recent_date)
         df_recent = df_sorted[df_sorted['Delivery Date'] == most_recent_date]
         
         time_slots = []
@@ -268,7 +303,13 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         if pd.isna(obj):
             return None
         elif isinstance(obj, (pd.Timestamp, datetime)):
-            return obj.isoformat()
+            # Ensure consistent UTC timezone
+            if obj.tzinfo is None or obj.tzinfo.utcoffset(obj) is None:
+                obj = obj.replace(tzinfo=datetime.now().astimezone().tzinfo)
+            # Convert to UTC and format without microseconds
+            _LOGGER.debug("Converting timestamp: %s", obj)
+            utc_time = obj.astimezone(datetime.now().astimezone().tzinfo)
+            return utc_time.replace(microsecond=0).isoformat()
         elif hasattr(obj, 'item'):  # This catches numpy types like int64
             return obj.item()
         elif isinstance(obj, dict):
