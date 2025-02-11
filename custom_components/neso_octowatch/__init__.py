@@ -31,7 +31,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Octopus DFS Session Watch from a config entry."""
     coordinator = DfsSessionWatchCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
+    # Force an immediate refresh before setting up sensors
+    await coordinator.async_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -129,6 +130,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             accepted_bids = todays_bids[todays_bids['Status'] == 'ACCEPTED']
             highest_accepted = None
             
+            _LOGGER.debug("Initial data fetch. Processing today's bids...")
             _LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
             if not accepted_bids.empty:
                 highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]

@@ -36,10 +36,14 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Octopus DFS Session Watch sensor entities."""
+    """Set up Octopus DFS Session Watch sensor entities."""   
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Initial refresh to get latest data
+    # Log the setup process
+    _LOGGER.debug("Setting up sensors - waiting for initial data refresh")
+    
+    # Force an initial refresh to ensure we have data before creating entities
+    await coordinator.async_config_entry_first_refresh()
     await coordinator.async_refresh()
 
     entities = []
