@@ -74,7 +74,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == SENSOR_PRICE:
             self._attr_native_unit_of_measurement = "GBP/MWh"
             self._attr_device_class = SensorDeviceClass.MONETARY
-            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_state_class = SensorStateClass.TOTAL
             self._attr_suggested_display_precision = 2
         elif sensor_type == SENSOR_VOLUME:
             self._attr_native_unit_of_measurement = "MW"
@@ -134,7 +134,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                                 self._attr_native_value = float(state_value)
                                 self._attr_native_unit_of_measurement = "GBP/MWh"
                                 self._attr_device_class = SensorDeviceClass.MONETARY
-                                self._attr_state_class = SensorStateClass.MEASUREMENT
+                                self._attr_state_class = SensorStateClass.TOTAL
                                 self._attr_suggested_display_precision = 2
                             else:
                                 self._attr_native_value = state_value

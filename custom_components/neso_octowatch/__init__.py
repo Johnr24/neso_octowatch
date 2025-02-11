@@ -78,8 +78,9 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
             SELECT * 
             FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" 
             WHERE "Registered DFS Participant" = 'OCTOPUS ENERGY LIMITED'
+            AND "Delivery Date" >= CURRENT_DATE
             ORDER BY "_id" DESC 
-            LIMIT 100
+            LIMIT 10000
         '''
         params = {'sql': sql_query}
 
@@ -169,9 +170,10 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         sql_query = '''
             SELECT COUNT(*) OVER () AS _count, * 
             FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" 
-            WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%'
+            WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%' 
+            AND "Delivery Date" >= CURRENT_DATE
             ORDER BY "_id" DESC
-            LIMIT 1000
+            LIMIT 10000
         '''
         params = {'sql': sql_query}
 
@@ -238,7 +240,9 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
             
         # Sort and get most recent date
         df_sorted = df.sort_values(['Delivery Date', 'From'])
-        most_recent_date = df_sorted['Delivery Date'].max()
+        # Convert Delivery Date to datetime if it's not already
+        df_sorted['Delivery Date'] = pd.to_datetime(df_sorted['Delivery Date'])
+        most_recent_date = df_sorted[df_sorted['Delivery Date'] >= pd.Timestamp.now().normalize()]['Delivery Date'].min()
         df_recent = df_sorted[df_sorted['Delivery Date'] == most_recent_date]
         
         time_slots = []
