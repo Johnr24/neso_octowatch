@@ -237,7 +237,7 @@ def check_utilization():
             return
         
         # Sort by Delivery Date DESC to get most recent entries first
-        df = df.sort_values('Delivery Date', ascending=False)
+        df = df.sort_values('Delivery Date', ascending=True)
         
         # Get the most recent entry
         latest = df.iloc[0]
