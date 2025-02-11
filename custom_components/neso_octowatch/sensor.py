@@ -92,8 +92,10 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                 if self._sensor_type == SENSOR_UTILIZATION:
                     if isinstance(state_value, (int, float)):
                         self._attr_native_value = float(state_value)
+                        self._attr_native_unit_of_measurement = "%"
                     else:
                         self._attr_native_value = state_value
+                        self._attr_native_unit_of_measurement = None
                 else:
                     self._attr_native_value = state_value
                 self._attr_extra_state_attributes = sensor_data.get("attributes", {})
