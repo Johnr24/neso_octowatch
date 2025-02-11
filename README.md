@@ -1,52 +1,70 @@
-# Neso Octowatch Integration for Home Assistant
+# Neso Octowatch for Home Assistant 🏠⚡
 
-[![HACS Default][hacs-shield]][hacs]
-[![GitHub Release][releases-shield]][releases]
+A Home Assistant integration for monitoring Octopus Energy Neso trading platform.
 
-A Home Assistant integration for monitoring Octopus Energy participation in the National Grid ESO Demand Flexibility Service.
+## Available Sensors 📊
 
-## Installation
+### Octopus Neso Status 🟢
+- **Description**: Displays the current status of the Neso trading platform
+- **Type**: Text status indicator
+- **Example Values**: "Open", "Closed", etc.
 
-### HACS (Recommended)
+### Octopus Neso Utilization 📈
+- **Description**: Shows the current utilization level of the platform
+- **Unit**: Percentage (%)
+- **Type**: Measurement
+- **Example**: "75.5%"
+- **Notes**: May also display text status when numerical value isn't available
 
-1. Install HACS if you haven't already (see [HACS installation](https://hacs.xyz/docs/installation/installation))
-2. Search for "Neso Octowatch" in HACS
-3. Click Install
-4. Restart Home Assistant
-5. Add the integration via the Home Assistant UI (Settings -> Devices & Services -> Add Integration)
+### Octopus Neso Delivery Date 📅
+- **Description**: The delivery date for the energy contracts
+- **Type**: Timestamp
+- **Format**: UTC datetime
+- **Example**: "2025-02-11"
+- **Notes**: Supports multiple date formats including ISO format and human-readable dates
 
-### Manual Installation
+### Octopus Neso Time Window ⏰
+- **Description**: The trading time window information
+- **Type**: Text
+- **Example**: "14:00-14:30"
+- **Notes**: Indicates the current or next trading period
 
-1. Download the latest release from the releases page
-2. Extract the zip file
-3. Copy the `neso_octowatch` directory to your Home Assistant's `custom_components` directory
-4. Restart Home Assistant
-5. Add the integration via the Home Assistant UI (Settings -> Devices & Services -> Add Integration)
+### Octopus Neso Price 💰
+- **Description**: Current energy price on the platform
+- **Unit**: GBP/MWh (British Pounds per Megawatt Hour)
+- **Type**: Monetary value
+- **Precision**: 2 decimal places
+- **Example**: "123.45 GBP/MWh"
 
-## Features
+### Octopus Neso Volume ⚡
+- **Description**: Trading volume measurement
+- **Unit**: MW (Megawatts)
+- **Type**: Power measurement
+- **Precision**: 1 decimal place
+- **Example**: "50.5 MW"
 
-- Monitor Octopus Energy's participation in ESO Demand Flexibility Service
-- Track bid status, prices, and volumes
-- View highest accepted bids
-- Real-time updates on utilization and delivery windows
+### Octopus Neso Highest Accepted 📊
+- **Description**: Highest accepted price in the current trading period
+- **Unit**: GBP/MWh (when numerical)
+- **Type**: Monetary value or text status
+- **Precision**: 2 decimal places when monetary
+- **Example**: "145.50 GBP/MWh"
+- **Notes**: May display text status when numerical value isn't available
 
-## Sensors
+## Technical Details 🔧
 
-The integration provides the following sensors:
+- **Update Interval**: 5 minutes by default
+- **Data Coordination**: Uses Home Assistant's DataUpdateCoordinator
+- **Error Handling**: Graceful handling of various data formats and potential API issues
+- **Timezone**: All timestamps are in UTC
 
-- Octopus Neso Status
-- Octopus Neso Utilization
-- Octopus Neso Delivery Date
-- Octopus Neso Time Window
-- Octopus Neso Price
-- Octopus Neso Volume
-- Octopus Neso Highest Accepted
+## Installation 💻
 
-## Support
+1. Install via HACS (Home Assistant Community Store)
+2. Add the integration through the Home Assistant interface
+3. Configure your credentials
+4. The sensors will be automatically created and start updating
 
-For bugs and feature requests, please [open an issue](https://github.com/Johnr24/neso_octowatch/issues)
+## Support 🤝
 
-[hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg
-[hacs]: https://github.com/hacs/integration
-[releases-shield]: https://img.shields.io/github/release/Johnr24/neso_octowatch.svg
-[releases]: https://github.com/Johnr24/neso_octowatch/releases
+If you encounter any issues or have questions, please open an issue on GitHub.
