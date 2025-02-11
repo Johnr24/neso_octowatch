@@ -76,18 +76,13 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
     def _check_utilization(self):
         """Check utilization data from NESO API."""
         sql_query = '''
-            SELECT * 
-            FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" 
-            WHERE _id IS NOT NULL
-            ORDER BY "_id" DESC 
-            LIMIT 10000
-        '''
+SELECT * FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" ORDER BY "_id" DESC LIMIT 10000'''
         params = {'sql': sql_query}
 
         try:
             response = requests.get(
                 'https://api.neso.energy/api/3/action/datastore_search_sql', 
-                params=parse.urlencode(params)
+                params=params
             )
             
             if response.status_code == 409:
@@ -236,17 +231,12 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
     def _check_octopus_bids(self):
         """Check Octopus Energy bids from NESO API."""
         sql_query = '''
-            SELECT COUNT(*) OVER () AS _count, * 
-            FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" 
-            WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%'
-            ORDER BY "_id" DESC
-            LIMIT 10000
-        '''
+SELECT COUNT(*) OVER () AS _count, * FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%' ORDER BY "_id" DESC LIMIT 10000'''
         params = {'sql': sql_query}
 
         try:
             response = requests.get('https://api.neso.energy/api/3/action/datastore_search_sql', 
-                                params=parse.urlencode(params))
+                                params=params)
             
             if response.status_code == 409:
                 LOGGER.warning("API Conflict error. This might be due to rate limiting or API changes.")
