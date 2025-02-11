@@ -14,6 +14,12 @@
           "Rejected": "Rejected",
           "Accepted": "Accepted"
         }
+      },
+      "highest_accepted": {
+        "name": "Highest Accepted Bid",
+        "state": {
+          "unavailable": "Unavailable"
+        }
       }
     }
   },
@@ -27,6 +33,10 @@
         "utilization": {
           "name": "Utilization",
           "description": "Current DFS session bid status - Accepted means the session is active, Rejected means it was not selected"
+        },
+        "highest_accepted": {
+          "name": "Highest Accepted Bid",
+          "description": "The highest accepted bid price for today's DFS session"
         }
       }
     }

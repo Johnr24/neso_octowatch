@@ -127,14 +127,22 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             # Find highest accepted bid
             today = pd.Timestamp.now().normalize()
             todays_bids = df[df['Delivery Date'].dt.normalize() == today]
-            accepted_bids = todays_bids[todays_bids['Status'] == 'ACCEPTED']
+            
+            # Debug logging for bids
+            LOGGER.debug("Today's bids found: %d", len(todays_bids))
+            LOGGER.debug("Today's bids statuses: %s", todays_bids['Status'].unique() if not todays_bids.empty else "No bids")
+            
+            accepted_bids = todays_bids[todays_bids['Status'].str.upper() == 'ACCEPTED']
             highest_accepted = None
             
             LOGGER.debug("Initial data fetch. Processing today's bids...")
             LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
+            LOGGER.debug("Accepted bids prices: %s", accepted_bids['Utilisation Price GBP per MWh'].tolist() if not accepted_bids.empty else "No accepted bids")
+            
             if not accepted_bids.empty:
                 highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
-            
+                LOGGER.debug("Found highest accepted bid: %s GBP/MWh", highest_accepted['Utilisation Price GBP per MWh'])
+                
             LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
             LOGGER.debug("Today's date: %s", today)
             LOGGER.debug("Future dates available: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
@@ -180,7 +188,11 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                     "attributes": {}
                 },
                 "octopus_dfs_session_highest_accepted": {
-                    "state": self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh']) if highest_accepted is not None else "No accepted bids today",
+                    "state": (
+                        float(self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh'])) 
+                        if highest_accepted is not None and pd.notna(highest_accepted['Utilisation Price GBP per MWh']) 
+                        else None
+                    ),
                     "attributes": {
                         "delivery_date": self._convert_to_serializable(highest_accepted['Delivery Date']) if highest_accepted is not None else None,
                         "time_from": self._convert_to_serializable(highest_accepted['From']) if highest_accepted is not None else None,

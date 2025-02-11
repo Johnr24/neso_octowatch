@@ -69,7 +69,6 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = SENSOR_NAMES[sensor_type]
         self._attr_unique_id = f"{DOMAIN}_{sensor_type}"
         self._attr_native_unit_of_measurement = None
-        self._attr_device_class = None
         self._attr_state_class = None
 
         # Set appropriate device class and units based on sensor type
@@ -94,8 +93,14 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == SENSOR_VOLUME:
             self._attr_native_unit_of_measurement = "MW"
             self._attr_device_class = SensorDeviceClass.POWER
-            self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
+        elif sensor_type == SENSOR_HIGHEST_ACCEPTED:
+            self._attr_native_unit_of_measurement = "GBP/MWh"
+            self._attr_device_class = SensorDeviceClass.MONETARY
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 2
+            self._attr_has_entity_name = True
+            self._attr_translation_key = "highest_accepted"
         
         if sensor_type == SENSOR_UTILIZATION:
             self._attr_options = VALID_STATUSES
@@ -161,18 +166,10 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
 
         elif self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
             try:
-                if isinstance(state_value, (int, float)) or (
-                    isinstance(state_value, str) and 
-                    state_value.replace('.', '', 1).isdigit()
-                ):
-                    self._attr_native_value = float(state_value)
-                    self._attr_native_unit_of_measurement = "GBP/MWh"
-                    self._attr_device_class = SensorDeviceClass.MONETARY
-                    self._attr_state_class = SensorStateClass.TOTAL
-                    self._attr_suggested_display_precision = 2
-                else:
-                    self._attr_native_value = state_value
+                self._attr_native_value = float(state_value) if state_value is not None else None
+                LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
             except (ValueError, TypeError):
+                LOGGER.error("Error converting highest accepted bid value: %s", state_value)
                 self._attr_native_value = state_value
         else:
             self._attr_native_value = state_value
