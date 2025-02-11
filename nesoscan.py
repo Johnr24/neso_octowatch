@@ -120,8 +120,8 @@ def check_octopus_bids():
         SELECT COUNT(*) OVER () AS _count, * 
         FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" 
         WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%'
-        ORDER BY "_id" ASC
-        LIMIT 100
+        ORDER BY "_id" DESC
+        LIMIT 1000
     '''
     params = {'sql': sql_query}
 
@@ -203,8 +203,8 @@ def check_utilization():
         SELECT * 
         FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" 
         WHERE "Registered DFS Participant" = 'OCTOPUS ENERGY LIMITED'
-        ORDER BY "_id" ASC 
-        LIMIT 100
+        ORDER BY "_id" DESC 
+        LIMIT 1000
     '''
     params = {'sql': sql_query}
 
