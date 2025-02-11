@@ -41,7 +41,6 @@ async def async_setup_entry(
 
     entities = []
     for sensor_type in [
-        SENSOR_STATUS,
         SENSOR_UTILIZATION,
         SENSOR_DELIVERY_DATE,
         SENSOR_TIME_WINDOW,

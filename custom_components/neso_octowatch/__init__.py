@@ -231,16 +231,6 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Bids - Future dates: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
             
             states = {
-                "octopus_neso_status": {
-                    "state": "active" if not df.empty else "inactive",
-                    "attributes": {
-                        "last_checked": datetime.now().isoformat(),
-                        "entry_count": len(df) if not df.empty else 0,
-                        "service_type": self._convert_to_serializable(df['Service Requirement Type'].iloc[0]) if not df.empty else None,
-                        "dispatch_type": self._convert_to_serializable(future_df['Dispatch Type'].iloc[0] if not future_df.empty else df['Dispatch Type'].iloc[0]) if not df.empty else None,
-                        "most_recent_date": self._convert_to_serializable(df['Delivery Date'].max()) if not df.empty else None
-                    }
-                },
                 "octopus_neso_details": {
                     "state": self._format_time_slots(df) if not df.empty else "No entries found",
                     "attributes": {
@@ -255,13 +245,6 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error("Error checking octopus bids: %s", e)
             return {
-                "octopus_neso_status": {
-                    "state": "error",
-                    "attributes": {
-                        "last_checked": datetime.now().isoformat(),
-                        "error": str(e)
-                    }
-                }
             }
             
     def _format_time_slots(self, df):

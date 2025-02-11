@@ -4,11 +4,6 @@ A Home Assistant integration for monitoring Octopus Energy Neso trading platform
 
 ## Available Sensors 📊
 
-### Octopus Neso Status 🟢
-- **Description**: Displays the current status of the Neso trading platform
-- **Type**: Text status indicator
-- **Example Values**: "Open", "Closed", etc.
-
 ### Octopus Neso Utilization 📈
 - **Description**: Shows the current utilization level of the platform
 - **Unit**: Percentage (%)

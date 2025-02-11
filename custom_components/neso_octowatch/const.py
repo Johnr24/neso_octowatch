@@ -7,7 +7,6 @@ PLATFORMS = [Platform.SENSOR]
 DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
 
 # Sensor types
-SENSOR_STATUS = "octopus_neso_status"
 SENSOR_UTILIZATION = "octopus_neso_utilization"
 SENSOR_DELIVERY_DATE = "octopus_neso_delivery_date"
 SENSOR_TIME_WINDOW = "octopus_neso_time_window"
@@ -17,7 +16,6 @@ SENSOR_HIGHEST_ACCEPTED = "octopus_neso_highest_accepted"
 
 # Sensor names
 SENSOR_NAMES = {
-    SENSOR_STATUS: "Octopus Neso Status",
     SENSOR_UTILIZATION: "Octopus Neso Utilization",
     SENSOR_DELIVERY_DATE: "Octopus Neso Delivery Date",
     SENSOR_TIME_WINDOW: "Octopus Neso Time Window",
