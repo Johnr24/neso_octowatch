@@ -176,7 +176,10 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             return states
             
         except Exception as e:
-            _LOGGER.error("Error checking utilization: %s", e)
+            _LOGGER.error(
+                "Error checking utilization from %s: %s",
+                'https://api.neso.energy/api/3/action/datastore_search_sql',
+                str(e))
             return {
                 "octopus_dfs_session_utilization": {
                     "state": "error",
@@ -243,7 +246,10 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             return states
                 
         except Exception as e:
-            _LOGGER.error("Error checking octopus bids: %s", e)
+            _LOGGER.error(
+                "Error checking octopus bids from %s: %s",
+                'https://api.neso.energy/api/3/action/datastore_search_sql',
+                str(e))
             return {
             }
             
