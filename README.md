@@ -1,49 +1,52 @@
-# Neso Octowatch Home Assistant Integration
+# Neso Octowatch Integration for Home Assistant
 
-This custom integration allows you to monitor Neso Octowatch data in Home Assistant.
+[![HACS Default][hacs-shield]][hacs]
+[![GitHub Release][releases-shield]][releases]
+
+A Home Assistant integration for monitoring Octopus Energy participation in the National Grid ESO Demand Flexibility Service.
 
 ## Installation
 
+### HACS (Recommended)
+
+1. Install HACS if you haven't already (see [HACS installation](https://hacs.xyz/docs/installation/installation))
+2. Search for "Neso Octowatch" in HACS
+3. Click Install
+4. Restart Home Assistant
+5. Add the integration via the Home Assistant UI (Settings -> Devices & Services -> Add Integration)
+
 ### Manual Installation
 
-1. Copy the `custom_components/neso_octowatch` directory to your Home Assistant's `custom_components` directory.
-2. Restart Home Assistant.
-3. Go to Settings -> Devices & Services
-4. Click "Add Integration"
-5. Search for "Neso Octowatch"
+1. Download the latest release from the releases page
+2. Extract the zip file
+3. Copy the `neso_octowatch` directory to your Home Assistant's `custom_components` directory
+4. Restart Home Assistant
+5. Add the integration via the Home Assistant UI (Settings -> Devices & Services -> Add Integration)
 
-### HACS Installation
+## Features
 
-1. Open HACS in your Home Assistant instance
-2. Click on "Custom Repositories"
-3. Add this repository URL with category "Integration"
-4. Install through HACS
-5. Restart Home Assistant
+- Monitor Octopus Energy's participation in ESO Demand Flexibility Service
+- Track bid status, prices, and volumes
+- View highest accepted bids
+- Real-time updates on utilization and delivery windows
 
-## Configuration
+## Sensors
 
-The integration can be configured through the Home Assistant UI. The following options are available:
-
-- Scan Interval: How often to fetch new data (in seconds, default: 300)
-
-## Available Sensors
-
-This integration provides the following sensors:
+The integration provides the following sensors:
 
 - Octopus Neso Status
-- Octopus Neso Utilization (%)
-- Octopus Neso Highest Accepted (W)
+- Octopus Neso Utilization
+- Octopus Neso Delivery Date
+- Octopus Neso Time Window
+- Octopus Neso Price
+- Octopus Neso Volume
+- Octopus Neso Highest Accepted
 
-## Development
+## Support
 
-If you want to contribute to this integration, please read the [Contributing guidelines](CONTRIBUTING.md).
+For bugs and feature requests, please [open an issue](https://github.com/Johnr24/neso_octowatch/issues)
 
-1. Clone the repository
-2. Install development dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+[hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg
+[hacs]: https://github.com/hacs/integration
+[releases-shield]: https://img.shields.io/github/release/Johnr24/neso_octowatch.svg
+[releases]: https://github.com/Johnr24/neso_octowatch/releases

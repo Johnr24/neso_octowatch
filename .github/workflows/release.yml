@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Validate with hassfest
+        uses: home-assistant/actions/hassfest@master
+
+      - name: Validate with HACS
+        uses: hacs/action@main
+        with:
+          category: "integration"
+
+      - name: ZIP Integration Dir
+        run: |
+          cd custom_components/neso_octowatch
+          zip -r ../../neso_octowatch.zip .
+
+      - name: Upload zip to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: neso_octowatch.zip
+          asset_name: neso_octowatch.zip
+          tag: ${{ github.ref }}
+          overwrite: true

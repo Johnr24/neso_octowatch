@@ -1,8 +1,7 @@
 {
-  "name": "Neso Octowatch",
-  "render_readme": true,
-  "domain": "neso_octowatch",
-  "documentation": "https://github.com/your-username/neso_octowatch",
-  "issue_tracker": "https://github.com/your-username/neso_octowatch/issues",
-  "homeassistant": "2023.1.0"
+    "name": "Neso Octowatch",
+    "render_readme": true,
+    "content_in_root": false,
+    "domains": ["neso_octowatch"],
+    "homeassistant": "2023.8.0"
 }
