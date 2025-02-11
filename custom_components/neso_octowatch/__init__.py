@@ -106,6 +106,11 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             if df.empty:
                 return {}
             
+            # Debug logging for DataFrame contents
+            _LOGGER.debug("DataFrame columns: %s", df.columns.tolist())
+            _LOGGER.debug("Status values in DataFrame: %s", df['Status'].unique() if 'Status' in df.columns else "No Status column")
+            _LOGGER.debug("DataFrame head: %s", df.head().to_dict('records'))
+            
             # Get the most recent entry
             latest = df.iloc[0]
             # Convert and sort dates
@@ -136,9 +141,16 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
             
             delivery_date = latest['Delivery Date']
+            status = latest.get('Status', 'UNKNOWN')
+            _LOGGER.debug(
+                "Setting utilization status to: %s (from record: %s)",
+                status,
+                {k: v for k, v in latest.items() if k in ['Status', 'Delivery Date', 'From', 'To']}
+            )
+            
             states = {
                 "octopus_dfs_session_utilization": {
-                    "state": latest.get('Status', 'UNKNOWN'),
+                    "state": status,
                     "attributes": {
                         "last_checked": datetime.now().isoformat(),
                     }
