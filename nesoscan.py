@@ -377,6 +377,13 @@ def main_loop():
     CHECK_INTERVAL = addon_config.get("scan_interval", 300)
     print(f"⏱️  Check interval: {CHECK_INTERVAL} seconds")
     
+    # Check immediately on startup for most recent data
+    try:
+        check_octopus_bids()
+        check_utilization()
+    except Exception as e:
+        print(f"❌ Error during initial check: {e}", file=sys.stderr)
+    
     while True:
         try:
             check_octopus_bids()

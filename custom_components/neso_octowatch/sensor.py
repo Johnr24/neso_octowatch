@@ -28,6 +28,9 @@ async def async_setup_entry(
     """Set up Neso Octowatch sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
+    # Initial refresh to get latest data
+    await coordinator.async_refresh()
+
     entities = []
     for sensor_type in [
         SENSOR_STATUS,
