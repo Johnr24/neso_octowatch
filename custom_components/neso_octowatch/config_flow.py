@@ -1,4 +1,4 @@
-"""Config flow for Neso Octowatch integration."""
+"""Config flow for Octopus DFS Session Watch integration."""
 from __future__ import annotations
 
 import logging
@@ -15,8 +15,8 @@ from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
-class NesoOctowatchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Neso Octowatch."""
+class DfsSessionWatchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Octopus DFS Session Watch."""
 
     VERSION = 1
 
@@ -38,7 +38,7 @@ class NesoOctowatchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         return self.async_create_entry(
-            title="Neso Octowatch",
+            title="Octopus DFS Session Watch",
             data={},
             options=user_input,
         )
@@ -47,11 +47,11 @@ class NesoOctowatchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> NesoOctowatchOptionsFlow:
+    ) -> DfsSessionWatchOptionsFlow:
         """Get the options flow for this handler."""
-        return NesoOctowatchOptionsFlow(config_entry)
+        return DfsSessionWatchOptionsFlow(config_entry)
 
-class NesoOctowatchOptionsFlow(config_entries.OptionsFlow):
+class DfsSessionWatchOptionsFlow(config_entries.OptionsFlow):
     """Handle options."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:

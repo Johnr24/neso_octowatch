@@ -1,4 +1,4 @@
-"""The Neso Octowatch integration."""
+"""The Octopus DFS Session Watch integration."""
 from __future__ import annotations
 
 import logging
@@ -24,13 +24,13 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Neso Octowatch component."""
+    """Set up the Octopus DFS Session Watch component."""
     hass.data[DOMAIN] = {}
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Neso Octowatch from a config entry."""
-    coordinator = NesoOctowatchCoordinator(hass, entry)
+    """Set up Octopus DFS Session Watch from a config entry."""
+    coordinator = DfsSessionWatchCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -46,8 +46,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return unload_ok
 
-class NesoOctowatchCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Neso Octowatch data."""
+class DfsSessionWatchCoordinator(DataUpdateCoordinator):
+    """Class to manage fetching Octopus DFS Session Watch data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -85,7 +85,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
 
         try:
             response = requests.get(
-                'https://api.neso.energy/api/3/action/datastore_search_sql', 
+                'https://api.octopusenergy.com/dfs/api/3/action/datastore_search_sql', 
                 params=parse.urlencode(params)
             )
             
@@ -133,13 +133,13 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
             
             delivery_date = latest['Delivery Date']
             states = {
-                "octopus_neso_utilization": {
+                "octopus_dfs_session_utilization": {
                     "state": latest.get('Status', 'UNKNOWN'),
                     "attributes": {
                         "last_checked": datetime.now().isoformat(),
                     }
                 },
-                "octopus_neso_delivery_date": {
+                "octopus_dfs_session_delivery_date": {
                     "state": self._convert_to_serializable(delivery_date),
                     "attributes": {
                         "raw_date": latest.get('Delivery Date'),
@@ -149,19 +149,19 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                         "last_update": datetime.now().isoformat()
                     }
                 },
-                "octopus_neso_time_window": {
+                "octopus_dfs_session_time_window": {
                     "state": f"{self._convert_to_serializable(latest.get('From'))} - {self._convert_to_serializable(latest.get('To'))}",
                     "attributes": {}
                 },
-                "octopus_neso_price": {
+                "octopus_dfs_session_price": {
                     "state": self._convert_to_serializable(latest.get('Utilisation Price GBP per MWh')),
                     "attributes": {}
                 },
-                "octopus_neso_volume": {
+                "octopus_dfs_session_volume": {
                     "state": self._convert_to_serializable(latest.get('DFS Volume MW')),
                     "attributes": {}
                 },
-                "octopus_neso_highest_accepted": {
+                "octopus_dfs_session_highest_accepted": {
                     "state": self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh']) if highest_accepted is not None else "No accepted bids",
                     "attributes": {
                         "delivery_date": self._convert_to_serializable(highest_accepted['Delivery Date']) if highest_accepted is not None else None,
@@ -178,7 +178,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error("Error checking utilization: %s", e)
             return {
-                "octopus_neso_utilization": {
+                "octopus_dfs_session_utilization": {
                     "state": "error",
                     "attributes": {
                         "last_checked": datetime.now().isoformat(),
@@ -199,7 +199,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         params = {'sql': sql_query}
 
         try:
-            response = requests.get('https://api.neso.energy/api/3/action/datastore_search_sql', 
+            response = requests.get('https://api.octopusenergy.com/dfs/api/3/action/datastore_search_sql', 
                                 params=parse.urlencode(params))
             
             if response.status_code == 409:
@@ -231,7 +231,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Bids - Future dates: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
             
             states = {
-                "octopus_neso_details": {
+                "octopus_dfs_session_details": {
                     "state": self._format_time_slots(df) if not df.empty else "No entries found",
                     "attributes": {
                         "raw_data": [{k: self._convert_to_serializable(v) for k, v in record.items()} 
@@ -296,7 +296,7 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
         elif hasattr(obj, 'item'):  # This catches numpy types like int64
             return obj.item()
         elif isinstance(obj, dict):
-            return {k: NesoOctowatchCoordinator._convert_to_serializable(v) for k, v in obj.items()}
+            return {k: DfsSessionWatchCoordinator._convert_to_serializable(v) for k, v in obj.items()}
         elif isinstance(obj, (list, tuple)):
-            return [NesoOctowatchCoordinator._convert_to_serializable(v) for v in obj]
+            return [DfsSessionWatchCoordinator._convert_to_serializable(v) for v in obj]
         return obj

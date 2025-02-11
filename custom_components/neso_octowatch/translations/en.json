@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "sensor": {
+      "time_window": {
+        "name": "Time Window",
+        "state": {
+          "unavailable": "Unavailable"
+        }
+      }
+    }
+  },
+  "entity_component": {
+    "sensor": {
+      "state_attributes": {
+        "time_window": {
+          "name": "Time Window",
+          "description": "The Demand Flexibility Service (DFS) session period for Octopus Energy, indicating when the service is scheduled to be active"
+        }
+      }
+    }
+  }
+}

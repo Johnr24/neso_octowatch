@@ -33,7 +33,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Neso Octowatch sensor entities."""
+    """Set up Octopus DFS Session Watch sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     # Initial refresh to get latest data
@@ -52,8 +52,8 @@ async def async_setup_entry(
 
     async_add_entities(entities, True)
 
-class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Neso Octowatch Sensor."""
+class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Octopus DFS Session Watch Sensor."""
 
     def __init__(self, coordinator, sensor_type):
         """Initialize the sensor."""
@@ -72,7 +72,10 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == SENSOR_DELIVERY_DATE:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
         elif sensor_type == SENSOR_TIME_WINDOW:
-            pass  # Text value, no special handling needed
+            # Text value indicating DFS session period
+            self._attr_has_entity_name = True
+            self._attr_translation_key = "time_window"
+            self._attr_entity_registry_enabled_default = True
         elif sensor_type == SENSOR_PRICE:
             self._attr_native_unit_of_measurement = "GBP/MWh"
             self._attr_device_class = SensorDeviceClass.MONETARY
@@ -159,8 +162,8 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
             else:
                 # For delivery date, try to get from highest accepted attributes if main state is null
                 if (self._sensor_type == SENSOR_DELIVERY_DATE and 
-                    "octopus_neso_highest_accepted" in self.coordinator.data):
-                    highest_accepted = self.coordinator.data["octopus_neso_highest_accepted"]
+                    "octopus_dfs_session_highest_accepted" in self.coordinator.data):
+                    highest_accepted = self.coordinator.data["octopus_dfs_session_highest_accepted"]
                     if "attributes" in highest_accepted:
                         delivery_date = highest_accepted["attributes"].get("delivery_date")
                         LOGGER.debug("Found delivery date in highest accepted: %s", delivery_date)

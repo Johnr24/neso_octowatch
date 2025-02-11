@@ -1,6 +1,6 @@
 {
   "domain": "neso_octowatch",
-  "name": "Neso Octowatch",
+  "name": "Octopus DFS Session Watch",
   "documentation": "https://github.com/Johnr24/neso_octowatch",
   "issue_tracker": "https://github.com/Johnr24/neso_octowatch/issues",
   "dependencies": [],
@@ -10,6 +10,6 @@
     "requests>=2.31.0"
   ],
   "iot_class": "cloud_polling",
-  "version": "1.0.11",
+  "version": "1.1.0",
   "config_flow": true
 }

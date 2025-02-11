@@ -1,5 +1,5 @@
 {
-    "name": "Neso Octowatch",
+    "name": "Octopus DFS Session Watch",
     "render_readme": true,
     "content_in_root": false,
     "homeassistant": "2023.8.0"
