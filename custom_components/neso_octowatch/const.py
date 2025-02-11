@@ -12,7 +12,7 @@ SENSOR_DELIVERY_DATE = "octopus_dfs_session_delivery_date"
 SENSOR_TIME_WINDOW = "octopus_dfs_session_time_window"
 SENSOR_PRICE = "octopus_dfs_session_price"
 SENSOR_VOLUME = "octopus_dfs_session_volume"
-SENSOR_HIGHEST_ACCEPTED = "market_highest_accepted_bid"
+SENSOR_HIGHEST_ACCEPTED = "octopus_dfs_session_highest_accepted"
 
 # Status values
 STATUS_ACCEPTED = "Accepted"
