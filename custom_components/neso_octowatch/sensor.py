@@ -65,8 +65,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         self._attr_state_class = None
 
         # Set appropriate device class and units based on sensor type
-        if sensor_type in [SENSOR_UTILIZATION, SENSOR_HIGHEST_ACCEPTED]:
-            # Will be set dynamically based on value type
+        if sensor_type == SENSOR_HIGHEST_ACCEPTED:
             pass
         elif sensor_type == SENSOR_DELIVERY_DATE:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
@@ -97,22 +96,8 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             if key in self.coordinator.data:
                 sensor_data = self.coordinator.data[key]
                 state_value = sensor_data.get("state")
-                
                 try:
-                    if self._sensor_type == SENSOR_UTILIZATION:
-                        # For utilization, only set percentage unit if it's a number
-                        if isinstance(state_value, (int, float)) or (
-                            isinstance(state_value, str) and 
-                            state_value.replace('.', '', 1).isdigit()
-                        ):
-                            self._attr_native_value = float(state_value)
-                            self._attr_native_unit_of_measurement = "%"
-                            self._attr_state_class = SensorStateClass.MEASUREMENT
-                        else:
-                            self._attr_native_value = state_value
-                            self._attr_native_unit_of_measurement = None
-                            self._attr_state_class = None
-                    elif self._sensor_type == SENSOR_DELIVERY_DATE:
+                    if self._sensor_type == SENSOR_DELIVERY_DATE:
                         if isinstance(state_value, str):
                             try:
                                 # Strip any timezone info first as we'll add UTC later
