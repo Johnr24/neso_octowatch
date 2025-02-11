@@ -64,7 +64,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
         self._attr_state_class = None
 
         # Set appropriate device class and units based on sensor type
-        if sensor_type == SENSOR_UTILIZATION:
+        if sensor_type in [SENSOR_UTILIZATION, SENSOR_HIGHEST_ACCEPTED]:
             # Will be set dynamically based on value type
             pass
         elif sensor_type == SENSOR_DELIVERY_DATE:
@@ -81,9 +81,6 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass.POWER
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
-        elif sensor_type == SENSOR_HIGHEST_ACCEPTED:
-            # Will be set dynamically based on value type
-            pass
 
     @callback
     def _handle_coordinator_update(self) -> None:
