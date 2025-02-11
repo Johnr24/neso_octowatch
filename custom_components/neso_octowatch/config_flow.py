@@ -13,7 +13,7 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 class DfsSessionWatchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Octopus DFS Session Watch."""

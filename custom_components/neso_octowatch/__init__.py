@@ -19,7 +19,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR]
 
@@ -54,7 +54,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
         """Initialize the coordinator."""
         super().__init__(
             hass,
-            _LOGGER,
+            LOGGER,
             name=DOMAIN,
             update_interval=timedelta(
                 seconds=entry.options.get("scan_interval", DEFAULT_SCAN_INTERVAL)
@@ -70,7 +70,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             # Merge the two dictionaries
             return {**bids_data, **utilization_data}
         except Exception as e:
-            _LOGGER.error("Error fetching data from NESO SCADA: %s", e)
+            LOGGER.error("Error fetching data from NESO SCADA: %s", e)
             return {}
 
     def _check_utilization(self):
@@ -91,14 +91,14 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             )
             
             if response.status_code == 409:
-                _LOGGER.warning("NESO API Conflict error. This might be due to rate limiting or API changes.")
+                LOGGER.warning("NESO API Conflict error. This might be due to rate limiting or API changes.")
                 return {}
                 
             response.raise_for_status()
             json_response = response.json()
             
             if not json_response.get('success'):
-                _LOGGER.error("NESO API Error: %s", json_response.get('error', 'Unknown error'))
+                LOGGER.error("NESO API Error: %s", json_response.get('error', 'Unknown error'))
                 return {}
             
             data = json_response["result"]
@@ -108,9 +108,9 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 return {}
             
             # Debug logging for DataFrame contents
-            _LOGGER.debug("DataFrame columns: %s", df.columns.tolist())
-            _LOGGER.debug("Status values in DataFrame: %s", df['Status'].unique() if 'Status' in df.columns else "No Status column")
-            _LOGGER.debug("DataFrame head: %s", df.head().to_dict('records'))
+            LOGGER.debug("DataFrame columns: %s", df.columns.tolist())
+            LOGGER.debug("Status values in DataFrame: %s", df['Status'].unique() if 'Status' in df.columns else "No Status column")
+            LOGGER.debug("DataFrame head: %s", df.head().to_dict('records'))
             
             # Get the most recent entry
             latest = df.iloc[0]
@@ -130,21 +130,21 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             accepted_bids = todays_bids[todays_bids['Status'] == 'ACCEPTED']
             highest_accepted = None
             
-            _LOGGER.debug("Initial data fetch. Processing today's bids...")
-            _LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
+            LOGGER.debug("Initial data fetch. Processing today's bids...")
+            LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
             if not accepted_bids.empty:
                 highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
             
-            _LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
-            _LOGGER.debug("Today's date: %s", today)
-            _LOGGER.debug("Future dates available: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
-            _LOGGER.debug("Selected latest date: %s", latest['Delivery Date'])
+            LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
+            LOGGER.debug("Today's date: %s", today)
+            LOGGER.debug("Future dates available: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
+            LOGGER.debug("Selected latest date: %s", latest['Delivery Date'])
             if highest_accepted is not None:
-                _LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
+                LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
             
             delivery_date = latest['Delivery Date']
             status = latest.get('Status', 'UNKNOWN')
-            _LOGGER.debug(
+            LOGGER.debug(
                 "Setting utilization status to: %s (from record: %s)",
                 status,
                 {k: v for k, v in latest.items() if k in ['Status', 'Delivery Date', 'From', 'To']}
@@ -194,7 +194,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             return states
             
         except Exception as e:
-            _LOGGER.error(
+            LOGGER.error(
                 "Error checking utilization from %s: %s",
                 'https://api.neso.energy/api/3/action/datastore_search_sql',
                 str(e))
@@ -224,18 +224,18 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                                 params=parse.urlencode(params))
             
             if response.status_code == 409:
-                _LOGGER.warning("API Conflict error. This might be due to rate limiting or API changes.")
+                LOGGER.warning("API Conflict error. This might be due to rate limiting or API changes.")
                 return {}
                 
             response.raise_for_status()
             json_response = response.json()
             
             if not json_response.get('success'):
-                _LOGGER.error("API Error: %s", json_response.get('error', 'Unknown error'))
+                LOGGER.error("API Error: %s", json_response.get('error', 'Unknown error'))
                 return {}
                 
             if 'result' not in json_response:
-                _LOGGER.error("'result' key not found in response")
+                LOGGER.error("'result' key not found in response")
                 return {}
                 
             data = json_response["result"]
@@ -248,8 +248,8 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 today = pd.Timestamp.now().normalize()
                 future_df = df[df['Delivery Date'] >= today]
                 
-                _LOGGER.debug("Bids - All dates: %s", df['Delivery Date'].unique())
-                _LOGGER.debug("Bids - Future dates: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
+                LOGGER.debug("Bids - All dates: %s", df['Delivery Date'].unique())
+                LOGGER.debug("Bids - Future dates: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
             
             states = {
                 "octopus_dfs_session_details": {
@@ -264,7 +264,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             return states
                 
         except Exception as e:
-            _LOGGER.error(
+            LOGGER.error(
                 "Error checking octopus bids from %s: %s",
                 'https://api.neso.energy/api/3/action/datastore_search_sql',
                 str(e))
@@ -280,7 +280,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
         df_sorted = df.sort_values(['Delivery Date', 'From'])
         # Convert Delivery Date to datetime if it's not already
         df_sorted['Delivery Date'] = pd.to_datetime(df_sorted['Delivery Date'])
-        _LOGGER.debug("Available delivery dates: %s", df_sorted['Delivery Date'].unique())
+        LOGGER.debug("Available delivery dates: %s", df_sorted['Delivery Date'].unique())
         # Try to get the nearest future date
         future_dates = df_sorted[df_sorted['Delivery Date'] >= pd.Timestamp.now().normalize()]
         if not future_dates.empty:
@@ -288,7 +288,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
         else:
             # If no future dates, get the most recent past date
             most_recent_date = df_sorted['Delivery Date'].max()
-        _LOGGER.debug("Selected delivery date: %s", most_recent_date)
+        LOGGER.debug("Selected delivery date: %s", most_recent_date)
         df_recent = df_sorted[df_sorted['Delivery Date'] == most_recent_date]
         
         time_slots = []
@@ -314,7 +314,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             if obj.tzinfo is None or obj.tzinfo.utcoffset(obj) is None:
                 obj = obj.replace(tzinfo=datetime.now().astimezone().tzinfo)
             # Convert to UTC and format without microseconds
-            _LOGGER.debug("Converting timestamp: %s", obj)
+            LOGGER.debug("Converting timestamp: %s", obj)
             utc_time = obj.astimezone(datetime.now().astimezone().tzinfo)
             return utc_time.replace(microsecond=0).isoformat()
         elif hasattr(obj, 'item'):  # This catches numpy types like int64
