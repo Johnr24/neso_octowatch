@@ -6,6 +6,12 @@
         "state": {
           "unavailable": "Unavailable"
         }
+      },
+      "utilization": {
+        "state": {
+          "Accepted": "Accepted",
+          "Rejected": "Rejected"
+        }
       }
     }
   },
@@ -15,6 +21,10 @@
         "time_window": {
           "name": "Time Window",
           "description": "The Demand Flexibility Service (DFS) session period for Octopus Energy, indicating when the service is scheduled to be active"
+        },
+        "utilization": {
+          "name": "Utilization",
+          "description": "The current status of the DFS session bid, indicating whether it has been accepted or rejected by the grid operator"
         }
       }
     }
