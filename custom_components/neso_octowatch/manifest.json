@@ -4,7 +4,7 @@
   "documentation": "https://github.com/Johnr24/neso_octowatch",
   "issue_tracker": "https://github.com/Johnr24/neso_octowatch/issues",
   "dependencies": [],
-  "codeowners": [],
+  "codeowners": ["@Johnr24"],
   "requirements": [
     "pandas>=2.0.0",
     "requests>=2.31.0"
