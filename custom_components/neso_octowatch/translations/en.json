@@ -11,8 +11,8 @@
         "name": "Utilization Status",
         "state": {
           "UNKNOWN": "Unknown",
-          "Rejected": "Rejected (Not Accepted)",
-          "Accepted": "Accepted (Active)"
+          "Rejected": "Rejected)",
+          "Accepted": "Accepted)"
         }
       }
     }
