@@ -38,9 +38,9 @@ A Home Assistant integration for monitoring Octopus Energy Neso trading platform
 - **Precision**: 1 decimal place
 - **Example**: "50.5 MW"
 
-### Octopus Neso Highest Accepted 📊
-- **Description**: Highest accepted price in the current trading period
-- **Unit**: GBP/MWh (when numerical)
+### Market Highest Accepted Bid 📊
+- **Description**: Highest accepted bid price from any market participant for the current delivery date
+- **Unit**: GBP/MWh
 - **Type**: Monetary value or text status
 - **Precision**: 2 decimal places when monetary
 - **Example**: "145.50 GBP/MWh"

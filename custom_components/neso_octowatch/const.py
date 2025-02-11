@@ -12,7 +12,7 @@ SENSOR_DELIVERY_DATE = "octopus_neso_delivery_date"
 SENSOR_TIME_WINDOW = "octopus_neso_time_window"
 SENSOR_PRICE = "octopus_neso_price"
 SENSOR_VOLUME = "octopus_neso_volume"
-SENSOR_HIGHEST_ACCEPTED = "octopus_neso_highest_accepted"
+SENSOR_HIGHEST_ACCEPTED = "market_highest_accepted_bid"
 
 # Sensor names
 SENSOR_NAMES = {
@@ -21,5 +21,5 @@ SENSOR_NAMES = {
     SENSOR_TIME_WINDOW: "Octopus Neso Time Window",
     SENSOR_PRICE: "Octopus Neso Price",
     SENSOR_VOLUME: "Octopus Neso Volume",
-    SENSOR_HIGHEST_ACCEPTED: "Octopus Neso Highest Accepted"
+    SENSOR_HIGHEST_ACCEPTED: "Market Highest Accepted Bid"
 }
