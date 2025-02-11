@@ -69,7 +69,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             # Merge the two dictionaries
             return {**bids_data, **utilization_data}
         except Exception as e:
-            _LOGGER.error("Error fetching data: %s", e)
+            _LOGGER.error("Error fetching data from NESO SCADA: %s", e)
             return {}
 
     def _check_utilization(self):
@@ -85,19 +85,19 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
 
         try:
             response = requests.get(
-                'https://api.octopusenergy.com/dfs/api/3/action/datastore_search_sql', 
+                'https://api.neso.energy/api/3/action/datastore_search_sql', 
                 params=parse.urlencode(params)
             )
             
             if response.status_code == 409:
-                _LOGGER.warning("API Conflict error. This might be due to rate limiting or API changes.")
+                _LOGGER.warning("NESO API Conflict error. This might be due to rate limiting or API changes.")
                 return {}
                 
             response.raise_for_status()
             json_response = response.json()
             
             if not json_response.get('success'):
-                _LOGGER.error("API Error: %s", json_response.get('error', 'Unknown error'))
+                _LOGGER.error("NESO API Error: %s", json_response.get('error', 'Unknown error'))
                 return {}
             
             data = json_response["result"]
@@ -199,7 +199,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
         params = {'sql': sql_query}
 
         try:
-            response = requests.get('https://api.octopusenergy.com/dfs/api/3/action/datastore_search_sql', 
+            response = requests.get('https://api.neso.energy/api/3/action/datastore_search_sql', 
                                 params=parse.urlencode(params))
             
             if response.status_code == 409:
