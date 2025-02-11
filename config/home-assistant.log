@@ -1,3 +1,0 @@
-2025-02-11 00:29:11.108 WARNING (Recorder) [homeassistant.components.recorder.util] The system could not validate that the sqlite3 database at //config/home-assistant_v2.db was shutdown cleanly
-2025-02-11 00:29:11.118 WARNING (Recorder) [homeassistant.components.recorder.util] Ended unfinished session (id=8 from 2025-02-11 00:21:01.466190)
-2025-02-11 00:29:37.280 WARNING (MainThread) [homeassistant.components.websocket_api.http.connection] [281472632072960] from 172.27.0.1 (Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:134.0) Gecko/20100101 Firefox/134.0): Disconnected: Received close message during auth phase
