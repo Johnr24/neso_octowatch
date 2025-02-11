@@ -70,7 +70,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             # Merge the two dictionaries
             return {**bids_data, **utilization_data}
         except Exception as e:
-            LOGGER.error("Error fetching data from NESO SCADA: %s", e)
+            LOGGER.error("Error fetching data from NESO API: %s", e)
             return {}
 
     def _check_utilization(self):
@@ -167,11 +167,24 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 
             LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
             LOGGER.debug("Today's date: %s", today)
+            LOGGER.debug("All Octopus dates: %s", octopus_df['Delivery Date'].unique() if not octopus_df.empty else "No Octopus entries")
             LOGGER.debug("Future dates available: %s", future_df['Delivery Date'].unique() if not future_df.empty else "None")
-            LOGGER.debug("Selected latest date: %s", latest['Delivery Date'])
+            LOGGER.debug("Octopus future dates: %s", 
+                octopus_df[octopus_df['Delivery Date'] >= today]['Delivery Date'].unique() if not octopus_df.empty else "No future Octopus dates")
+            
+            # Use the most recent date from any participant for delivery_date
+            most_recent_date = df['Delivery Date'].max()
+            LOGGER.debug("Most recent session date (any participant): %s", most_recent_date)
+            
+            # For other fields, still use Octopus-specific data
+            delivery_date = most_recent_date
+            
+            # Get Octopus bid for this date if it exists
+            octopus_latest_for_date = octopus_df[octopus_df['Delivery Date'] == most_recent_date].iloc[0] if not octopus_df[octopus_df['Delivery Date'] == most_recent_date].empty else None
+            LOGGER.debug("Found Octopus bid for most recent date: %s", "Yes" if octopus_latest_for_date is not None else "No")
+            
             if highest_accepted is not None:
                 LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
-            delivery_date = octopus_latest['Delivery Date'] if octopus_latest is not None else None
             LOGGER.debug(
                 "Setting utilization status to: %s (from record: %s)",
                 status,
@@ -188,9 +201,9 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 "octopus_dfs_session_delivery_date": {
                     "state": self._convert_to_serializable(delivery_date),
                     "attributes": {
-                        "raw_date": octopus_latest.get('Delivery Date') if octopus_latest is not None else None,
-                        "time_from": self._convert_to_serializable(octopus_latest.get('From')) if octopus_latest is not None else None,
-                        "time_to": self._convert_to_serializable(octopus_latest.get('To')) if octopus_latest is not None else None,
+                        "raw_date": delivery_date,
+                        "time_from": self._convert_to_serializable(latest.get('From')),
+                        "time_to": self._convert_to_serializable(latest.get('To')),
                         "volume": self._convert_to_serializable(octopus_latest.get('DFS Volume MW')) if octopus_latest is not None else None,
                         "last_update": datetime.now().isoformat()
                     }
