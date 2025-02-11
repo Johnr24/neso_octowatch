@@ -36,7 +36,7 @@
         },
         "highest_accepted": {
           "name": "Highest Accepted Bid",
-          "description": "The highest accepted bid price for today's DFS session"
+          "description": "The highest accepted bid price from any participant in today's DFS session"
         }
       }
     }

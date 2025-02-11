@@ -78,7 +78,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
         sql_query = '''
             SELECT * 
             FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" 
-            WHERE "Registered DFS Participant" = 'OCTOPUS ENERGY LIMITED'
+            WHERE _id IS NOT NULL
             ORDER BY "_id" DESC 
             LIMIT 10000
         '''
@@ -124,9 +124,17 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             # Use the earliest future date or most recent past date if no future dates
             latest = future_df.iloc[0] if not future_df.empty else df.iloc[0]
             
+            # Filter Octopus-specific data
+            octopus_df = df[df['Registered DFS Participant'] == 'OCTOPUS ENERGY LIMITED']
+            octopus_latest = octopus_df.iloc[0] if not octopus_df.empty else None
+            
             # Find highest accepted bid
             today = pd.Timestamp.now().normalize()
+            
+            # Get all bids for today
             todays_bids = df[df['Delivery Date'].dt.normalize() == today]
+            
+            LOGGER.debug("Found %d total bids for today from all participants", len(todays_bids))
             
             # Debug logging for bids
             LOGGER.debug("Today's bids found: %d", len(todays_bids))
@@ -137,11 +145,18 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             
             LOGGER.debug("Initial data fetch. Processing today's bids...")
             LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
-            LOGGER.debug("Accepted bids prices: %s", accepted_bids['Utilisation Price GBP per MWh'].tolist() if not accepted_bids.empty else "No accepted bids")
+            LOGGER.debug("Accepted bids participants: %s", accepted_bids['Registered DFS Participant'].unique() if not accepted_bids.empty else "No accepted bids")
+            LOGGER.debug("Market accepted bids prices: %s", accepted_bids['Utilisation Price GBP per MWh'].tolist() if not accepted_bids.empty else "No accepted bids")
             
             if not accepted_bids.empty:
-                highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
+                # Get the highest accepted bid from any participant
+                highest_accepted_idx = accepted_bids['Utilisation Price GBP per MWh'].idxmax()
+                highest_accepted = accepted_bids.loc[highest_accepted_idx]
+                LOGGER.debug("Highest accepted bid from participant: %s", highest_accepted['Registered DFS Participant'])
                 LOGGER.debug("Found highest accepted bid: %s GBP/MWh", highest_accepted['Utilisation Price GBP per MWh'])
+            
+            # Get Octopus-specific status
+            status = octopus_latest.get('Status', 'UNKNOWN') if octopus_latest is not None else 'UNKNOWN'
                 
             LOGGER.debug("All dates in dataset: %s", df['Delivery Date'].unique())
             LOGGER.debug("Today's date: %s", today)
@@ -149,9 +164,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             LOGGER.debug("Selected latest date: %s", latest['Delivery Date'])
             if highest_accepted is not None:
                 LOGGER.debug("Highest accepted bid date: %s", highest_accepted['Delivery Date'])
-            
-            delivery_date = latest['Delivery Date']
-            status = latest.get('Status', 'UNKNOWN')
+            delivery_date = octopus_latest['Delivery Date'] if octopus_latest is not None else None
             LOGGER.debug(
                 "Setting utilization status to: %s (from record: %s)",
                 status,
@@ -168,23 +181,23 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 "octopus_dfs_session_delivery_date": {
                     "state": self._convert_to_serializable(delivery_date),
                     "attributes": {
-                        "raw_date": latest.get('Delivery Date'),
-                        "time_from": self._convert_to_serializable(latest.get('From')),
-                        "time_to": self._convert_to_serializable(latest.get('To')),
-                        "volume": self._convert_to_serializable(latest.get('DFS Volume MW')),
+                        "raw_date": octopus_latest.get('Delivery Date') if octopus_latest is not None else None,
+                        "time_from": self._convert_to_serializable(octopus_latest.get('From')) if octopus_latest is not None else None,
+                        "time_to": self._convert_to_serializable(octopus_latest.get('To')) if octopus_latest is not None else None,
+                        "volume": self._convert_to_serializable(octopus_latest.get('DFS Volume MW')) if octopus_latest is not None else None,
                         "last_update": datetime.now().isoformat()
                     }
                 },
                 "octopus_dfs_session_time_window": {
-                    "state": f"{self._convert_to_serializable(latest.get('From'))} - {self._convert_to_serializable(latest.get('To'))}",
+                    "state": f"{self._convert_to_serializable(octopus_latest.get('From'))} - {self._convert_to_serializable(octopus_latest.get('To'))}" if octopus_latest is not None else None,
                     "attributes": {}
                 },
                 "octopus_dfs_session_price": {
-                    "state": self._convert_to_serializable(latest.get('Utilisation Price GBP per MWh')),
+                    "state": self._convert_to_serializable(octopus_latest.get('Utilisation Price GBP per MWh')) if octopus_latest is not None else None,
                     "attributes": {}
                 },
                 "octopus_dfs_session_volume": {
-                    "state": self._convert_to_serializable(latest.get('DFS Volume MW')),
+                    "state": self._convert_to_serializable(octopus_latest.get('DFS Volume MW')) if octopus_latest is not None else None,
                     "attributes": {}
                 },
                 "octopus_dfs_session_highest_accepted": {
