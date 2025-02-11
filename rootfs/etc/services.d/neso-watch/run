@@ -7,12 +7,12 @@ bashio::log.info "Starting NESO Octopus Watch..."
 
 # Verify environment
 bashio::log.info "Checking configuration..."
-if bashio::config.has_value 'check_interval'; then
-    export CHECK_INTERVAL=$(bashio::config 'check_interval')
-    bashio::log.info "Check interval set to: ${CHECK_INTERVAL}"
+if bashio::config.has_value 'scan_interval'; then
+    export SCAN_INTERVAL=$(bashio::config 'scan_interval')
+    bashio::log.info "Scan interval set to: ${SCAN_INTERVAL}"
 else
-    bashio::log.warning "No check_interval set, using default: 300"
-    export CHECK_INTERVAL=300
+    bashio::log.warning "No scan_interval set, using default: 300"
+    export SCAN_INTERVAL=300
 fi
 
 export DEBUG=$(bashio::config 'debug')
@@ -25,9 +25,9 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # Verify script exists
-if [ ! -f "/app/nesoscan.py" ]; then
-    bashio::log.error "nesoscan.py not found in /app!"
-    ls -la /app
+if [ ! -f "/usr/src/app/nesoscan.py" ]; then
+    bashio::log.error "nesoscan.py not found in /usr/src/app!"
+    ls -la /usr/src/app
     exit 1
 fi
 
@@ -37,6 +37,6 @@ if [ ! -d "/data" ]; then
     mkdir -p /data
 fi
 
-cd /app
+cd /usr/src/app
 bashio::log.info "Starting main script..."
-exec python3 nesoscan.py 
+exec python3 nesoscan.py

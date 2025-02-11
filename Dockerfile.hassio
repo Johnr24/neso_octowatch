@@ -1,32 +1,55 @@
-FROM python:3.11-alpine
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.18
+FROM ${BUILD_FROM}
 
-# Set working directory
-WORKDIR /app
+# Set shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install system dependencies if needed
-RUN apk add --no-cache gcc musl-dev linux-headers
+# Setup base
+ARG BUILD_ARCH=amd64
+RUN \
+    apk add --no-cache \
+        python3 \
+        py3-pip \
+        gcc \
+        python3-dev \
+        musl-dev \
+        linux-headers
 
-# Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Copy root filesystem
+COPY rootfs /
 
-# Copy requirements and install
+WORKDIR /usr/src/app
 
-COPY neso_octowatch/requirements.txt ./neso_octowatch/requirements.txt
-RUN python3 -m venv /app/venv && . /app/venv/bin/activate && pip3 install --no-cache-dir -r neso_octowatch/requirements.txt
-
-COPY config ./config
-COPY hacs.json ./
+# Copy your application
 COPY neso_octowatch ./neso_octowatch
-
-# Copy all python scripts
 COPY *.py ./
+COPY requirements.txt ./
 
-# Create data directory for persistent storage and set permissions
-RUN mkdir /data && \
-    chown -R appuser:appgroup /data /app
+# Install requirements
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Switch to non-root user
-USER appuser
+# Set permissions
+RUN chmod a+x /etc/services.d/neso-watch/run
 
-# Default to running nesoscan.py
-CMD ["python", "nesoscan.py"]
+# Labels
+ARG BUILD_DATE
+ARG BUILD_REF
+ARG BUILD_VERSION
+LABEL \
+    io.hass.name="Neso Octowatch" \
+    io.hass.description="Home Assistant add-on for monitoring Neso Octowatch data." \
+    io.hass.arch="${BUILD_ARCH}" \
+    io.hass.type="addon" \
+    io.hass.version=${BUILD_VERSION} \
+    maintainer="Your Name <your.email@example.com>" \
+    org.opencontainers.image.title="Neso Octowatch" \
+    org.opencontainers.image.description="Home Assistant add-on for monitoring Neso Octowatch data." \
+    org.opencontainers.image.vendor="Home Assistant Add-ons" \
+    org.opencontainers.image.authors="Your Name <your.email@example.com>" \
+    org.opencontainers.image.licenses="Apache 2.0" \
+    org.opencontainers.image.url="https://github.com/your-username/neso_octowatch" \
+    org.opencontainers.image.source="https://github.com/your-username/neso_octowatch" \
+    org.opencontainers.image.documentation="https://github.com/your-username/neso_octowatch/blob/main/README.md" \
+    org.opencontainers.image.created=${BUILD_DATE} \
+    org.opencontainers.image.revision=${BUILD_REF} \
+    org.opencontainers.image.version=${BUILD_VERSION}

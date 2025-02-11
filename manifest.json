@@ -1,15 +1,22 @@
 {
-  "slug": "neso_octowatch",
   "name": "Neso Octowatch",
   "version": "1.0.0",
+  "slug": "neso_octowatch",
   "description": "Home Assistant add-on for monitoring Neso Octowatch data.",
+  "url": "https://github.com/johnr24/neso_octowatch",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
-  "image": "ghcr.io/your-username/neso_octowatch",
-  "startup": "application",
-  "boot": "system",
-  "hassio_api": true,
-  "homeassistant": "2021.1.0",
-  "map": ["config:rw", "share:rw"],
-  "options": {},
-  "schema": {}
+  "init": false,
+  "stage": "stable",
+  "startup": "services",
+  "ingress": false,
+  "panel_icon": "mdi:watch",
+  "homeassistant": "2023.1.0",
+  "apparmor": true,
+  "host_network": true,
+  "options": {
+    "scan_interval": 300
+  },
+  "schema": {
+    "scan_interval": "int?"
+  }
 }
