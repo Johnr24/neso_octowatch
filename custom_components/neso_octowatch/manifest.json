@@ -1,7 +1,8 @@
 {
   "domain": "neso_octowatch",
   "name": "Neso Octowatch",
-  "documentation": "https://github.com/yourusername/neso_octowatch",
+  "documentation": "https://github.com/Johnr24/neso_octowatch",
+  "issue_tracker": "https://github.com/Johnr24/neso_octowatch/issues",
   "dependencies": [],
   "codeowners": [],
   "requirements": [
