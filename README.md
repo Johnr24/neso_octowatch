@@ -1,23 +1,20 @@
-# NESO Octopus Watch
+# Neso Octowatch Add-on for Home Assistant
 
-Home Assistant add-on to monitor Octopus Energy's participation in National Grid ESO services.
-
-## Features
-
-- Monitors participation in NESO services
-- Tracks bid acceptance/rejection status
-- Real-time updates through Home Assistant sensors
-- Configurable check intervals
+This add-on allows you to monitor Neso Octowatch data within your Home Assistant instance.
 
 ## Installation
 
-1. Add this repository to your Home Assistant instance
-2. Install the "NESO Octopus Watch" add-on
-3. Start the add-on
+1.  Add this repository as a custom repository in the Home Assistant add-on store.
+2.  Install the "Neso Octowatch" add-on.
+3.  Configure the add-on options as needed.
+4.  Start the add-on.
 
-## Sensors
+## Configuration
 
-- `octopus_neso_status`: Current participation status
-- `octopus_neso_details`: Detailed time slots and requirements
-- `octopus_neso_utilization`: Bid acceptance status
-- `octopus_neso_utilization_details`: Detailed bid information 
+The add-on can be configured via the Home Assistant UI. The following options are available:
+
+*   **Option 1:** Description of option 1.
+*   **Option 2:** Description of option 2.
+
+## Support
+

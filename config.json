@@ -1,0 +1,12 @@
+{
+  "options": {
+    "scan_interval": 300
+  },
+  "schema": {
+    "scan_interval": {
+      "type": "integer",
+      "description": "Scan interval in seconds",
+      "default": 300
+    }
+  }
+}

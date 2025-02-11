@@ -13,46 +13,16 @@ import time
 import sys
 
 # Add state file path for Home Assistant
-STATES_PATH = Path("/data/neso_octowatch/states.json")
-
-# Get the configuration directory
-CONFIG_DIR = Path("/config")
+STATES_PATH = Path("/share/neso_octowatch/states.json")
 
 # Get check interval from environment or use default (5 minutes)
 CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '300'))
 
-def get_addon_config():
-    """Load addon configuration from config.json"""
-    config_path = CONFIG_DIR / "config.json"
-    try:
-        with open(config_path, "r") as f:
-            config = json.load(f)
-        return config.get("options", {})
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Warning: Could not load addon config, using defaults.")
-        return {}
-
 def save_states(states):
     """Save states for Home Assistant to read"""
     STATES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Convert all values to JSON-serializable format
-    def convert_dict(d):
-        return {
-            k: convert_to_serializable(v) if isinstance(v, dict) else v
-            for k, v in d.items()
-        }
-    
-    json_states = {}
-    for key, value in states.items():
-        if isinstance(value, dict):
-            json_states[key] = convert_dict(value)
-        else:
-            json_states[key] = value
-    
-    # Write states to file
     with open(STATES_PATH, 'w') as f:
-        json.dump(json_states, f, indent=2)
+        json.dump(states, f)
 
 def format_time_slots(df):
     """Format time slots into a readable summary, only for the most recent date"""
@@ -109,10 +79,6 @@ def convert_to_serializable(obj):
         return obj.isoformat()
     elif hasattr(obj, 'item'):  # This catches numpy types like int64
         return obj.item()
-    elif isinstance(obj, dict):
-        return {k: convert_to_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return [convert_to_serializable(v) for v in obj]
     return obj
 
 def check_octopus_bids():
@@ -262,7 +228,7 @@ def check_utilization():
         
         # Get the most recent entry
         latest = df.iloc[0]
-        status = "🟢 Accepted" if latest.get('Status', '').item() == 'ACCEPTED' else "🔴 Rejected"
+        status = "🟢 Accepted" if latest.get('Status') == 'ACCEPTED' else "🔴 Rejected"
         
         # Find highest accepted bid
         accepted_bids = df[df['Status'] == 'ACCEPTED']
@@ -294,51 +260,14 @@ def check_utilization():
             "octopus_neso_utilization_details": {
                 "state": format_utilization_data(df),
                 "attributes": {
-                    "raw_data": [convert_to_serializable(record) for record in df.to_dict('records')]
+                    "raw_data": [{k: convert_to_serializable(v) for k, v in record.items()} 
+                                for record in df.to_dict('records')]
                 }
             }
         }
         
         # Save states for Home Assistant
         save_states(states)
-        states["octopus_neso_utilization_status"] = {
-            "state": status
-        }
-        states["octopus_neso_latest_delivery_date"] = {
-            "state": convert_to_serializable(latest.get('Delivery Date'))
-        }
-        states["octopus_neso_latest_time_from"] = {
-            "state": convert_to_serializable(latest.get('From'))
-        }
-        states["octopus_neso_latest_time_to"] = {
-            "state": convert_to_serializable(latest.get('To'))
-        }
-        states["octopus_neso_latest_price"] = {
-            "state": convert_to_serializable(latest.get('Utilisation Price GBP per MWh'))
-        }
-        states["octopus_neso_latest_volume"] = {
-            "state": convert_to_serializable(latest.get('DFS Volume MW'))
-        }
-        if highest_accepted is not None:
-            states["octopus_neso_highest_accepted_price"] = {
-                "state": convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh'])
-            }
-            states["octopus_neso_highest_accepted_date"] = {
-                "state": convert_to_serializable(highest_accepted['Delivery Date'])
-            }
-            states["octopus_neso_highest_accepted_time_from"] = {
-                "state": convert_to_serializable(highest_accepted['From'])
-            }
-            states["octopus_neso_highest_accepted_time_to"] = {
-                "state": convert_to_serializable(highest_accepted['To'])
-            }
-            states["octopus_neso_highest_accepted_volume"] = {
-                "state": convert_to_serializable(highest_accepted['DFS Volume MW'])
-            }
-        else:
-            states["octopus_neso_highest_accepted_price"] = {
-                "state": "No accepted bids"
-            }
         
         # Print concise status
         print(f"Status: {status}")
@@ -373,8 +302,6 @@ def check_utilization():
 
 def main_loop():
     print("🔄 Starting NESO Octopus Watch")
-    addon_config = get_addon_config()
-    CHECK_INTERVAL = addon_config.get("scan_interval", 300)
     print(f"⏱️  Check interval: {CHECK_INTERVAL} seconds")
     
     while True:

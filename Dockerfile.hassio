@@ -6,15 +6,27 @@ WORKDIR /app
 # Install system dependencies if needed
 RUN apk add --no-cache gcc musl-dev linux-headers
 
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 # Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+COPY neso_octowatch/requirements.txt ./neso_octowatch/requirements.txt
+RUN python3 -m venv /app/venv && . /app/venv/bin/activate && pip3 install --no-cache-dir -r neso_octowatch/requirements.txt
+
+COPY config ./config
+COPY hacs.json ./
+COPY neso_octowatch ./neso_octowatch
 
 # Copy all python scripts
 COPY *.py ./
 
-# Create data directory for persistent storage
-RUN mkdir /data
+# Create data directory for persistent storage and set permissions
+RUN mkdir /data && \
+    chown -R appuser:appgroup /data /app
+
+# Switch to non-root user
+USER appuser
 
 # Default to running nesoscan.py
-CMD ["python", "nesoscan.py"] 
+CMD ["python", "nesoscan.py"]

@@ -3,9 +3,40 @@
 # Start the NESO watch service
 # ==============================================================================
 
-# Set the check interval from config
-export CHECK_INTERVAL=$(bashio::config 'check_interval')
+bashio::log.info "Starting NESO Octopus Watch..."
+
+# Verify environment
+bashio::log.info "Checking configuration..."
+if bashio::config.has_value 'check_interval'; then
+    export CHECK_INTERVAL=$(bashio::config 'check_interval')
+    bashio::log.info "Check interval set to: ${CHECK_INTERVAL}"
+else
+    bashio::log.warning "No check_interval set, using default: 300"
+    export CHECK_INTERVAL=300
+fi
+
 export DEBUG=$(bashio::config 'debug')
 
+# Verify Python installation
+bashio::log.info "Checking Python installation..."
+if ! command -v python3 &> /dev/null; then
+    bashio::log.error "Python3 not found!"
+    exit 1
+fi
+
+# Verify script exists
+if [ ! -f "/app/nesoscan.py" ]; then
+    bashio::log.error "nesoscan.py not found in /app!"
+    ls -la /app
+    exit 1
+fi
+
+# Verify data directory
+if [ ! -d "/data" ]; then
+    bashio::log.warning "Data directory not found, creating..."
+    mkdir -p /data
+fi
+
 cd /app
+bashio::log.info "Starting main script..."
 exec python3 nesoscan.py 
