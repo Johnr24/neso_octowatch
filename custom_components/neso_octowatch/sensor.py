@@ -166,10 +166,10 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
 
         elif self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
             try:
+                LOGGER.debug("Raw highest accepted bid value received: %s", state_value)
                 self._attr_native_value = float(state_value) if state_value is not None else None
                 LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
             except (ValueError, TypeError):
-                LOGGER.error("Error converting highest accepted bid value: %s", state_value)
                 self._attr_native_value = state_value
         else:
             self._attr_native_value = state_value

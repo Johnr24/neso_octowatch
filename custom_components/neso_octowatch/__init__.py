@@ -127,34 +127,40 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             octopus_latest = octopus_df.iloc[0] if not octopus_df.empty else None
             
             # Find highest accepted bid
-            today = pd.Timestamp.now().normalize()
+            # Sort by delivery date in descending order
+            df = df.sort_values('Delivery Date', ascending=False)
             
-            # Get all bids for today
-            todays_bids = df[df['Delivery Date'].dt.normalize() == today]
+            # Get the most recent date
+            most_recent_date = df['Delivery Date'].iloc[0] if not df.empty else None
+            LOGGER.debug("Most recent date in dataset: %s", most_recent_date)
             
-            LOGGER.debug("Found %d total bids for today from all participants", len(todays_bids))
-            
-            # Debug logging for bids
-            LOGGER.debug("Today's bids found: %d", len(todays_bids))
-            LOGGER.debug("Today's bids statuses: %s", todays_bids['Status'].unique() if not todays_bids.empty else "No bids")
-            
-            accepted_bids = todays_bids[todays_bids['Status'].str.upper() == 'ACCEPTED']
             highest_accepted = None
             
+            if most_recent_date is not None:
+                # Get all bids for the most recent date
+                recent_bids = df[df['Delivery Date'] == most_recent_date]
+                # Filter for accepted bids
+                accepted_bids = recent_bids[recent_bids['Status'].str.upper().str.contains('ACCEPTED', na=False)]
+                
+                if not accepted_bids.empty:
+                    # Get the highest price among accepted bids
+                    highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].astype(float).idxmax()]
+
+            LOGGER.debug("Recent date bids count: %d, Accepted bids: %d", len(recent_bids) if 'recent_bids' in locals() else 0, len(accepted_bids) if 'accepted_bids' in locals() else 0)
+
             LOGGER.debug("Initial data fetch. Processing today's bids...")
             LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
             LOGGER.debug("Accepted bids participants: %s", accepted_bids['Registered DFS Participant'].unique() if not accepted_bids.empty else "No accepted bids")
             LOGGER.debug("Market accepted bids prices: %s", accepted_bids['Utilisation Price GBP per MWh'].tolist() if not accepted_bids.empty else "No accepted bids")
+            LOGGER.debug("Raw DataFrame head: %s", df.head().to_dict())
             
-            if not accepted_bids.empty:
-                # Convert prices to numeric, replacing any non-numeric values with NaN
-                accepted_bids['Utilisation Price GBP per MWh'] = pd.to_numeric(accepted_bids['Utilisation Price GBP per MWh'], errors='coerce')
-                # Drop any rows where the price is NaN
-                valid_bids = accepted_bids.dropna(subset=['Utilisation Price GBP per MWh'])
-                if not valid_bids.empty:
-                    highest_accepted = valid_bids.loc[valid_bids['Utilisation Price GBP per MWh'].idxmax()]
+            if highest_accepted is not None:
+                LOGGER.debug("Selected highest bid price: %s", highest_accepted['Utilisation Price GBP per MWh'])
+                LOGGER.debug("Selected bid delivery date: %s", highest_accepted['Delivery Date'])
                 LOGGER.debug("Highest accepted bid from participant: %s", highest_accepted['Registered DFS Participant'])
                 LOGGER.debug("Found highest accepted bid: %s GBP/MWh", highest_accepted['Utilisation Price GBP per MWh'])
+            else:
+                LOGGER.warning("No accepted bids found for the most recent date")
             
             # Get Octopus-specific status
             status = octopus_latest.get('Status', 'UNKNOWN') if octopus_latest is not None else 'UNKNOWN'
@@ -203,11 +209,11 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                 },
                 "octopus_dfs_session_highest_accepted": {
                     "state": (
-                        float(self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh'])) 
+                        highest_accepted['Utilisation Price GBP per MWh']
                         if highest_accepted is not None and pd.notna(highest_accepted['Utilisation Price GBP per MWh']) 
                         else None
                     ),
-                    "attributes": {
+                    "attributes": {} if highest_accepted is None else {
                         "delivery_date": self._convert_to_serializable(highest_accepted['Delivery Date']) if highest_accepted is not None else None,
                         "time_from": self._convert_to_serializable(highest_accepted['From']) if highest_accepted is not None else None,
                         "time_to": self._convert_to_serializable(highest_accepted['To']) if highest_accepted is not None else None,
