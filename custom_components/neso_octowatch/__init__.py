@@ -147,9 +147,12 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             LOGGER.debug("Market accepted bids prices: %s", accepted_bids['Utilisation Price GBP per MWh'].tolist() if not accepted_bids.empty else "No accepted bids")
             
             if not accepted_bids.empty:
-                # Get the highest accepted bid from any participant
-                highest_accepted_idx = accepted_bids['Utilisation Price GBP per MWh'].idxmax()
-                highest_accepted = accepted_bids.loc[highest_accepted_idx]
+                # Convert prices to numeric, replacing any non-numeric values with NaN
+                accepted_bids['Utilisation Price GBP per MWh'] = pd.to_numeric(accepted_bids['Utilisation Price GBP per MWh'], errors='coerce')
+                # Drop any rows where the price is NaN
+                valid_bids = accepted_bids.dropna(subset=['Utilisation Price GBP per MWh'])
+                if not valid_bids.empty:
+                    highest_accepted = valid_bids.loc[valid_bids['Utilisation Price GBP per MWh'].idxmax()]
                 LOGGER.debug("Highest accepted bid from participant: %s", highest_accepted['Registered DFS Participant'])
                 LOGGER.debug("Found highest accepted bid: %s GBP/MWh", highest_accepted['Utilisation Price GBP per MWh'])
             
