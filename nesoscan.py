@@ -236,12 +236,17 @@ def check_utilization():
             print("⚪ No utilization data found")
             return
         
+        # Sort by Delivery Date DESC to get most recent entries first
+        df = df.sort_values('Delivery Date', ascending=False)
+        
         # Get the most recent entry
         latest = df.iloc[0]
         status = "🟢 Accepted" if latest.get('Status', '').item() == 'ACCEPTED' else "🔴 Rejected"
         
-        # Find highest accepted bid
+        # Find highest accepted bid from most recent delivery date
         accepted_bids = df[df['Status'] == 'ACCEPTED']
+        if not accepted_bids.empty:
+            accepted_bids = accepted_bids[accepted_bids['Delivery Date'] == latest['Delivery Date']]
         highest_accepted = None
         if not accepted_bids.empty:
             highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
