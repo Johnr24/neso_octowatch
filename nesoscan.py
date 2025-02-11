@@ -12,24 +12,23 @@ from pathlib import Path
 import time
 import sys
 
-# Add state file path for Home Assistant
-STATES_PATH = Path("/data/neso_octowatch/states.json")
-
-# Get the configuration directory
-CONFIG_DIR = Path("/config")
+# Add state file path for the integration
+STATES_PATH = Path(os.path.dirname(os.path.abspath(__file__))) / "custom_components" / "neso_octowatch" / "states.json"
 
 # Get check interval from environment or use default (5 minutes)
 CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '300'))
 
-def get_addon_config():
-    """Load addon configuration from config.json"""
-    config_path = CONFIG_DIR / "config.json"
+def get_config():
+    """Load configuration"""
     try:
-        with open(config_path, "r") as f:
-            config = json.load(f)
-        return config.get("options", {})
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Warning: Could not load addon config, using defaults.")
+        config_path = Path(os.path.dirname(os.path.abspath(__file__))) / "config.yaml"
+        if config_path.exists():
+            import yaml
+            with open(config_path, "r") as f:
+                return yaml.safe_load(f)
+        return {}
+    except Exception as e:
+        print(f"Warning: Could not load config: {e}")
         return {}
 
 def save_states(states):
@@ -197,30 +196,6 @@ def check_octopus_bids():
         save_states(states)
         raise
 
-def format_utilization_data(df):
-    """Format utilization data for Octopus Energy entries"""
-    # Filter for Octopus Energy entries
-    octopus_df = df[df['Registered DFS Participant'] == 'OCTOPUS ENERGY LIMITED']
-    
-    if octopus_df.empty:
-        return "No Octopus Energy utilization data found"
-    
-    # Sort by date/time if available
-    if 'Delivery Date' in octopus_df.columns:
-        octopus_df = octopus_df.sort_values('Delivery Date', ascending=False)
-    
-    utilization_entries = []
-    
-    for _, row in octopus_df.iterrows():
-        entry = f"\n**Delivery Date: {row.get('Delivery Date', 'N/A')}**"
-        entry += f"\nTime: {row.get('From', 'N/A')} - {row.get('To', 'N/A')}"
-        entry += f"\nStatus: {row.get('Status', 'N/A')}"
-        entry += f"\nPrice: £{row.get('Utilisation Price GBP per MWh', 'N/A')}/MWh"
-        entry += f"\nVolume: {row.get('DFS Volume MW', 'N/A')} MW"
-        utilization_entries.append(entry)
-    
-    return "\n---".join(utilization_entries)
-
 def check_utilization():
     # Now proceed with the original query
     sql_query = '''
@@ -307,26 +282,6 @@ def check_utilization():
         
         # Save states for Home Assistant
         save_states(states)
-        if highest_accepted is not None:
-            states["octopus_neso_highest_accepted_price"] = {
-                "state": convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh'])
-            }
-            states["octopus_neso_highest_accepted_date"] = {
-                "state": convert_to_serializable(highest_accepted['Delivery Date'])
-            }
-            states["octopus_neso_highest_accepted_time_from"] = {
-                "state": convert_to_serializable(highest_accepted['From'])
-            }
-            states["octopus_neso_highest_accepted_time_to"] = {
-                "state": convert_to_serializable(highest_accepted['To'])
-            }
-            states["octopus_neso_highest_accepted_volume"] = {
-                "state": convert_to_serializable(highest_accepted['DFS Volume MW'])
-            }
-        else:
-            states["octopus_neso_highest_accepted_price"] = {
-                "state": "No accepted bids"
-            }
         
         # Print concise status
         print(f"Status: {status}")
@@ -361,8 +316,8 @@ def check_utilization():
 
 def main_loop():
     print("🔄 Starting NESO Octopus Watch")
-    addon_config = get_addon_config()
-    CHECK_INTERVAL = addon_config.get("scan_interval", 300)
+    config = get_config()
+    CHECK_INTERVAL = config.get("scan_interval", 300)
     print(f"⏱️  Check interval: {CHECK_INTERVAL} seconds")
     
     # Check immediately on startup for most recent data
