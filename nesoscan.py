@@ -120,7 +120,8 @@ def check_octopus_bids():
         SELECT COUNT(*) OVER () AS _count, * 
         FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" 
         WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%'
-        ORDER BY "_id" ASC
+        ORDER BY "_id" DESC
+        LIMIT 100
     '''
     params = {'sql': sql_query}
 

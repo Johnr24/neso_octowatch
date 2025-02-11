@@ -116,9 +116,14 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                     elif self._sensor_type == SENSOR_DELIVERY_DATE:
                         if isinstance(state_value, str):
                             try:
-                                dt = datetime.strptime(state_value, "%Y-%m-%d")
-                                # Set to noon UTC to avoid timezone issues
-                                dt = dt.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=zoneinfo.ZoneInfo("UTC"))
+                                # Try different date formats
+                                try:
+                                    # Try parsing with time
+                                    dt = datetime.strptime(state_value, "%d %B %Y at %H:%M")
+                                except ValueError:
+                                    # Fallback to date-only format
+                                    dt = datetime.strptime(state_value, "%Y-%m-%d")
+                                dt = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
                                 self._attr_native_value = dt
                             except ValueError:
                                 self._attr_native_value = None
