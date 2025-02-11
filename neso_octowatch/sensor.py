@@ -1,55 +1,70 @@
 """Platform for sensor integration."""
-from homeassistant.const import (
-    DEVICE_CLASS_POWER,
-    POWER_WATT,
+from __future__ import annotations
+
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import (
+    DOMAIN,
+    SENSOR_NAMES,
+    SENSOR_STATUS,
+    SENSOR_UTILIZATION,
+    SENSOR_HIGHEST_ACCEPTED,
 )
-from homeassistant.helpers.entity import Entity
 
-import json
-import os
-from pathlib import Path
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Neso Octowatch sensor entities."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
-# Add state file path for Home Assistant
-STATES_PATH = Path("/data/neso_octowatch/states.json")
+    entities = []
+    for sensor_type in [SENSOR_STATUS, SENSOR_UTILIZATION, SENSOR_HIGHEST_ACCEPTED]:
+        entities.append(NesoOctowatchSensor(coordinator, sensor_type))
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up the sensor platform."""
-    add_entities([NesoOctowatchSensor('Octopus Neso Status', 'octopus_neso_status'),
-                  NesoOctowatchSensor('Octopus Neso Utilization', 'octopus_neso_utilization'),
-                  NesoOctowatchSensor('Octopus Neso Highest Accepted', 'octopus_neso_highest_accepted')])
+    async_add_entities(entities, True)
 
-class NesoOctowatchSensor(Entity):
-    """Representation of a sensor."""
+class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Neso Octowatch Sensor."""
 
-    def __init__(self, name, state_key):
+    def __init__(self, coordinator, sensor_type):
         """Initialize the sensor."""
-        self._name = name
-        self._state_key = state_key
-        self._state = None
-        self._attributes = {}
+        super().__init__(coordinator)
+        self._sensor_type = sensor_type
+        self._attr_name = SENSOR_NAMES[sensor_type]
+        self._attr_unique_id = f"{DOMAIN}_{sensor_type}"
+
+        # Set appropriate device class and units based on sensor type
+        if sensor_type == SENSOR_UTILIZATION:
+            self._attr_native_unit_of_measurement = "%"
+            self._attr_device_class = "power_factor"
+        elif sensor_type == SENSOR_HIGHEST_ACCEPTED:
+            self._attr_native_unit_of_measurement = "W"
+            self._attr_device_class = "power"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data is None:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {}
+        else:
+            sensor_data = self.coordinator.data.get(self._sensor_type, {})
+            self._attr_native_value = sensor_data.get("state")
+            self._attr_extra_state_attributes = sensor_data.get("attributes", {})
+        
+        self.async_write_ha_state()
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._name
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        return self._attributes
-
-    def update(self):
-        """Fetch new state data for the sensor."""
-        try:
-            with open(STATES_PATH, 'r') as f:
-                data = json.load(f)
-                self._state = data[self._state_key]['state']
-                self._attributes = data[self._state_key]['attributes']
-        except Exception as e:
-            self._state = "unavailable"
-            self._attributes = {"error": str(e)}
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data is not None
+            and self._sensor_type in self.coordinator.data
+        )
