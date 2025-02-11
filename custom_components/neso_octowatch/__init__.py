@@ -64,8 +64,10 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from NESO API."""
         try:
+            bids_data = await self.hass.async_add_executor_job(self._check_octopus_bids)
             utilization_data = await self.hass.async_add_executor_job(self._check_utilization)
-            return utilization_data
+            # Merge the two dictionaries
+            return {**bids_data, **utilization_data}
         except Exception as e:
             _LOGGER.error("Error fetching data: %s", e)
             return {}
@@ -161,6 +163,96 @@ class NesoOctowatchCoordinator(DataUpdateCoordinator):
                     }
                 }
             }
+            
+    def _check_octopus_bids(self):
+        """Check Octopus Energy bids from NESO API."""
+        sql_query = '''
+            SELECT COUNT(*) OVER () AS _count, * 
+            FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" 
+            WHERE "Participant Bids Eligible" LIKE '%OCTOPUS ENERGY LIMITED%'
+            ORDER BY "_id" DESC
+            LIMIT 1000
+        '''
+        params = {'sql': sql_query}
+
+        try:
+            response = requests.get('https://api.neso.energy/api/3/action/datastore_search_sql', 
+                                params=parse.urlencode(params))
+            
+            if response.status_code == 409:
+                _LOGGER.warning("API Conflict error. This might be due to rate limiting or API changes.")
+                return {}
+                
+            response.raise_for_status()
+            json_response = response.json()
+            
+            if not json_response.get('success'):
+                _LOGGER.error("API Error: %s", json_response.get('error', 'Unknown error'))
+                return {}
+                
+            if 'result' not in json_response:
+                _LOGGER.error("'result' key not found in response")
+                return {}
+                
+            data = json_response["result"]
+            df = pd.DataFrame(data["records"])
+            
+            states = {
+                "octopus_neso_status": {
+                    "state": "active" if not df.empty else "inactive",
+                    "attributes": {
+                        "last_checked": datetime.now().isoformat(),
+                        "entry_count": len(df) if not df.empty else 0,
+                        "service_type": self._convert_to_serializable(df['Service Requirement Type'].iloc[0]) if not df.empty else None,
+                        "dispatch_type": self._convert_to_serializable(df['Dispatch Type'].iloc[0]) if not df.empty else None,
+                        "most_recent_date": self._convert_to_serializable(df['Delivery Date'].max()) if not df.empty else None
+                    }
+                },
+                "octopus_neso_details": {
+                    "state": self._format_time_slots(df) if not df.empty else "No entries found",
+                    "attributes": {
+                        "raw_data": [{k: self._convert_to_serializable(v) for k, v in record.items()} 
+                                  for record in (df[df['Delivery Date'] == df['Delivery Date'].max()].to_dict('records') if not df.empty else [])]
+                    }
+                }
+            }
+            
+            return states
+                
+        except Exception as e:
+            _LOGGER.error("Error checking octopus bids: %s", e)
+            return {
+                "octopus_neso_status": {
+                    "state": "error",
+                    "attributes": {
+                        "last_checked": datetime.now().isoformat(),
+                        "error": str(e)
+                    }
+                }
+            }
+            
+    def _format_time_slots(self, df):
+        """Format time slots into a readable summary, only for the most recent date."""
+        if df.empty:
+            return "No entries found"
+            
+        # Sort and get most recent date
+        df_sorted = df.sort_values(['Delivery Date', 'From'])
+        most_recent_date = df_sorted['Delivery Date'].max()
+        df_recent = df_sorted[df_sorted['Delivery Date'] == most_recent_date]
+        
+        time_slots = []
+        time_slots.append(f"\n**{most_recent_date}**")
+        
+        for _, row in df_recent.iterrows():
+            period = f"• {row['From']} - {row['To']}"
+            if pd.notna(row.get('Service Requirement MW')):
+                period += f" ({row['Service Requirement MW']} MW)"
+            if pd.notna(row.get('Guaranteed Acceptance Price GBP per MWh')):
+                period += f" with a guaranteed acceptance price of £{row['Guaranteed Acceptance Price GBP per MWh']}/MWh"
+            time_slots.append(period)
+        
+        return "\n".join(time_slots)
 
     @staticmethod
     def _convert_to_serializable(obj):
