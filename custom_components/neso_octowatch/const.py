@@ -14,6 +14,13 @@ SENSOR_PRICE = "octopus_dfs_session_price"
 SENSOR_VOLUME = "octopus_dfs_session_volume"
 SENSOR_HIGHEST_ACCEPTED = "market_highest_accepted_bid"
 
+# Status values
+STATUS_ACCEPTED = "Accepted"
+STATUS_REJECTED = "Rejected"
+STATUS_UNKNOWN = "Unknown"
+
+VALID_STATUSES = [STATUS_ACCEPTED, STATUS_REJECTED, STATUS_UNKNOWN]
+
 # Sensor names
 SENSOR_NAMES = {
     SENSOR_UTILIZATION: "Octopus DFS Session Utilization",
