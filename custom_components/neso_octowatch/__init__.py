@@ -119,8 +119,12 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             latest = future_df.iloc[0] if not future_df.empty else df.iloc[0]
             
             # Find highest accepted bid
-            accepted_bids = df[df['Status'] == 'ACCEPTED']
+            today = pd.Timestamp.now().normalize()
+            todays_bids = df[df['Delivery Date'].dt.normalize() == today]
+            accepted_bids = todays_bids[todays_bids['Status'] == 'ACCEPTED']
             highest_accepted = None
+            
+            _LOGGER.debug("Number of accepted bids today: %s", len(accepted_bids))
             if not accepted_bids.empty:
                 highest_accepted = accepted_bids.loc[accepted_bids['Utilisation Price GBP per MWh'].idxmax()]
             
@@ -162,7 +166,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                     "attributes": {}
                 },
                 "octopus_dfs_session_highest_accepted": {
-                    "state": self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh']) if highest_accepted is not None else "No accepted bids",
+                    "state": self._convert_to_serializable(highest_accepted['Utilisation Price GBP per MWh']) if highest_accepted is not None else "No accepted bids today",
                     "attributes": {
                         "delivery_date": self._convert_to_serializable(highest_accepted['Delivery Date']) if highest_accepted is not None else None,
                         "time_from": self._convert_to_serializable(highest_accepted['From']) if highest_accepted is not None else None,
