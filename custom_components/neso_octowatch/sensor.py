@@ -1,11 +1,9 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
-import logging
-_LOGGER = logging.getLogger(__name__)
-
 from datetime import datetime
 import zoneinfo
+import logging
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
@@ -27,6 +25,8 @@ from .const import (
     SENSOR_VOLUME,
     SENSOR_HIGHEST_ACCEPTED,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -115,7 +115,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                         if isinstance(state_value, str):
                             try:
                                 # Strip any timezone info first as we'll add UTC later
-                                _LOGGER.debug("Processing delivery date: %s", state_value)
+                                LOGGER.debug("Processing delivery date: %s", state_value)
                                 clean_value = state_value.split('+')[0].strip()
                                 clean_value = clean_value.split('.')[0].strip()  # Remove any milliseconds
                                 try:
@@ -128,7 +128,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                                     except ValueError:
                                         dt = datetime.strptime(clean_value, "%d %B %Y")
                                 dt = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
-                                _LOGGER.debug("Parsed delivery date: %s", dt)
+                                LOGGER.debug("Parsed delivery date: %s", dt)
                                 self._attr_native_value = dt
                             except ValueError:
                                 self._attr_native_value = None
@@ -164,7 +164,7 @@ class NesoOctowatchSensor(CoordinatorEntity, SensorEntity):
                     highest_accepted = self.coordinator.data["octopus_neso_highest_accepted"]
                     if "attributes" in highest_accepted:
                         delivery_date = highest_accepted["attributes"].get("delivery_date")
-                        _LOGGER.debug("Found delivery date in highest accepted: %s", delivery_date)
+                        LOGGER.debug("Found delivery date in highest accepted: %s", delivery_date)
                         if delivery_date:
                             try:
                                 self._attr_native_value = datetime.fromisoformat(delivery_date.split('+')[0]).replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
