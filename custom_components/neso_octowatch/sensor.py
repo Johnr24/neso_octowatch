@@ -17,7 +17,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     DOMAIN,
     SENSOR_NAMES,
-    SENSOR_STATUS,
     SENSOR_UTILIZATION,
     SENSOR_DELIVERY_DATE,
     SENSOR_TIME_WINDOW,
@@ -48,7 +47,7 @@ async def async_setup_entry(
         SENSOR_VOLUME,
         SENSOR_HIGHEST_ACCEPTED
     ]:
-        entities.append(NesoOctowatchSensor(coordinator, sensor_type))
+        entities.append(DfsSessionWatchSensor(coordinator, sensor_type))
 
     async_add_entities(entities, True)
 
