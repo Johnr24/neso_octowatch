@@ -1,6 +1,9 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
 from datetime import datetime
 import zoneinfo
 from homeassistant.components.sensor import (
