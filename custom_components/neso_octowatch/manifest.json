@@ -1,0 +1,11 @@
+{
+  "domain": "neso_octowatch",
+  "name": "Neso Octowatch",
+  "documentation": "https://github.com/your-username/neso_octowatch",
+  "dependencies": [],
+  "codeowners": ["@your-username"],
+  "requirements": ["voluptuous>=0.13.1"],
+  "iot_class": "local_polling",
+  "version": "1.0.0",
+  "config_flow": true
+}
