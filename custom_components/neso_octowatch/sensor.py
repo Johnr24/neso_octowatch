@@ -185,26 +185,41 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
 
     def _process_price(self, state_value: str | None, attributes: dict) -> None:
-        """Process price values and calculate average."""
+        """Process price values and calculate average for most recent session."""
         if state_value == STATUS_UNKNOWN:
             self._attr_native_value = None
             return
             
         try:
             if isinstance(state_value, str) and ';' in state_value:
-                prices = [float(price.strip()) for price in state_value.split(';') if price.strip()]
-                if prices:
-                    # Calculate average of all prices
-                    self._attr_native_value = sum(prices) / len(prices)
+                all_prices = [float(price.strip()) for price in state_value.split(';') if price.strip()]
+                if all_prices:
+                    # Calculate overall average as an attribute
+                    overall_avg = sum(all_prices) / len(all_prices)
+                    
+                    # Get the most recent session's prices (last entry)
+                    latest_session_prices = [all_prices[-1]]  # Take only the most recent price
+                    latest_avg = latest_session_prices[0]  # For single price, average is the price itself
+                    
+                    # Set the most recent session's average as the main value
+                    self._attr_native_value = latest_avg
                     self._attr_extra_state_attributes = {
                         **attributes,
-                        'all_prices': prices,
-                        'price_count': len(prices)
+                        'all_prices': all_prices,
+                        'price_count': len(all_prices),
+                        'overall_average': overall_avg,
                     }
                 else:
                     self._attr_native_value = None
             elif state_value and str(state_value).strip():
-                self._attr_native_value = float(str(state_value).strip())
+                price = float(str(state_value).strip())
+                self._attr_native_value = price
+                self._attr_extra_state_attributes = {
+                    **attributes,
+                    'all_prices': [price],
+                    'price_count': 1,
+                    'overall_average': price,
+                }
             else:
                 self._attr_native_value = None
         except (ValueError, TypeError):
@@ -278,9 +293,12 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif self._sensor_type == SENSOR_VOLUME:
             LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
         elif self._sensor_type == SENSOR_PRICE:
-            LOGGER.debug("Setting average price value to: %s", self._attr_native_value)
-            if hasattr(self, '_attr_extra_state_attributes') and self._attr_extra_state_attributes.get('price_count'):
-                LOGGER.debug("Average calculated from %d prices", self._attr_extra_state_attributes['price_count'])
+            LOGGER.debug("Setting latest session price to: %s", self._attr_native_value)
+            if hasattr(self, '_attr_extra_state_attributes'):
+                if 'overall_average' in self._attr_extra_state_attributes:
+                    LOGGER.debug("Overall average price: %s (from %d prices)",
+                               self._attr_extra_state_attributes['overall_average'],
+                               self._attr_extra_state_attributes['price_count'])
         
         self.async_write_ha_state()
 
