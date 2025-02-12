@@ -75,7 +75,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
 
     def _check_utilization(self):
         """Check utilization data from NESO API."""
-        sql_query = 'SELECT * FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" ORDER BY "_id" DESC LIMIT 1000'
+        sql_query = 'SELECT * FROM "cc36fff5-5f6f-4fde-8932-c935d982ecd8" ORDER BY "_id" ASC LIMIT 1000'
         params = {'sql': sql_query}
 
         try:
@@ -127,7 +127,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             octopus_latest = octopus_df.iloc[0] if not octopus_df.empty else None
             
             # Find highest accepted bid
-            # Sort by delivery date in descending order
+            # Sort by delivery date in ASCending order
             df = df.sort_values('Delivery Date', ascending=False)
             
             # Get the most recent date
@@ -208,22 +208,10 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                         "last_update": datetime.now().isoformat()
                     }
                 },
-                "octopus_dfs_session_time_window": {
-                    "state": f"{self._convert_to_serializable(octopus_latest.get('From'))} - {self._convert_to_serializable(octopus_latest.get('To'))}" if octopus_latest is not None else None,
-                    "attributes": {}
-                },
-                "octopus_dfs_session_price": {
-                    "state": self._convert_to_serializable(octopus_latest.get('Utilisation Price GBP per MWh')) if octopus_latest is not None else None,
-                    "attributes": {}
-                },
-                "octopus_dfs_session_volume": {
-                    "state": self._convert_to_serializable(octopus_latest.get('DFS Volume MW')) if octopus_latest is not None else None,
-                    "attributes": {}
-                },
                 "octopus_dfs_session_highest_accepted": {
                     "state": (
                         highest_accepted['Utilisation Price GBP per MWh']
-                        if highest_accepted is not None and pd.notna(highest_accepted['Utilisation Price GBP per MWh']) 
+                        if highest_accepted is not None and pd.notna(highest_accepted['Utilisation Price GBP per MWh'])
                         else None
                     ),
                     "attributes": {} if highest_accepted is None else {
@@ -235,6 +223,88 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
                     }
                 }
             }
+
+            # Process group data for time windows, volume, and price
+            time_window_state = None
+            time_window_attrs = {}
+            volume_state = None
+            volume_attrs = {}
+            price_state = None
+            price_attrs = {}
+            
+            if not octopus_df.empty:
+                # Sort by delivery date and time
+                octopus_df_sorted = octopus_df.sort_values(['Delivery Date', 'From'])
+                time_windows = []
+                volumes = []
+                
+                # Group entries in pairs
+                rows = octopus_df_sorted.to_dict('records')
+                for i in range(0, len(rows), 2):
+                    row1 = rows[i]
+                    row2 = rows[i + 1] if i + 1 < len(rows) else None
+                    
+                    # First entry in pair
+                    time_from1 = self._convert_to_serializable(row1['From'])
+                    time_to1 = self._convert_to_serializable(row1['To'])
+                    volume1 = self._convert_to_serializable(row1['DFS Volume MW'])
+                    
+                    if row2:
+                        # If we have a second entry, combine them
+                        time_from2 = self._convert_to_serializable(row2['From'])
+                        time_to2 = self._convert_to_serializable(row2['To'])
+                        volume2 = self._convert_to_serializable(row2['DFS Volume MW'])
+                        
+                        time_windows.append(f"{time_from1} - {time_to1}, {time_from2} - {time_to2}")
+                        volumes.append(f"{volume1}, {volume2}")
+                    else:
+                        # Just add the single entry if no pair
+                        time_windows.append(f"{time_from1} - {time_to1}")
+                        volumes.append(str(volume1))
+                
+                # Calculate average price from all bids
+                avg_price = octopus_df['Utilisation Price GBP per MWh'].mean()
+                
+                # Set states and attributes
+                time_window_state = "; ".join(time_windows)
+                time_window_attrs = {
+                    "individual_windows": [
+                        window.split(", ")
+                        for window in time_windows
+                    ]
+                }
+                
+                volume_state = "; ".join(volumes)
+                volume_attrs = {
+                    "individual_volumes": [
+                        [float(v.strip()) for v in volume.split(",")]
+                        for volume in volumes
+                    ]
+                }
+                
+                price_state = self._convert_to_serializable(avg_price)
+                price_attrs = {
+                    "individual_prices": [
+                        self._convert_to_serializable(price)
+                        for price in octopus_df['Utilisation Price GBP per MWh'].tolist()
+                    ]
+                }
+                
+            # Add to states dictionary
+            states.update({
+                "octopus_dfs_session_time_window": {
+                    "state": time_window_state,
+                    "attributes": time_window_attrs
+                },
+                "octopus_dfs_session_price": {
+                    "state": price_state,
+                    "attributes": price_attrs
+                },
+                "octopus_dfs_session_volume": {
+                    "state": volume_state,
+                    "attributes": volume_attrs
+                }
+            })
             
             return states
             
@@ -255,7 +325,7 @@ class DfsSessionWatchCoordinator(DataUpdateCoordinator):
             
     def _check_octopus_bids(self):
         """Check Octopus Energy bids from NESO API."""
-        sql_query = 'SELECT COUNT(*) OVER () AS _count, * FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" WHERE "Participant Bids Eligible" LIKE \'%OCTOPUS ENERGY LIMITED%\' ORDER BY "_id" DESC LIMIT 1000'
+        sql_query = 'SELECT COUNT(*) OVER () AS _count, * FROM "f5605e2b-b677-424c-8df7-d0ce4ee03cef" WHERE "Participant Bids Eligible" LIKE \'%OCTOPUS ENERGY LIMITED%\' ORDER BY "_id" ASC LIMIT 1000'
         params = {'sql': sql_query}
 
         try:

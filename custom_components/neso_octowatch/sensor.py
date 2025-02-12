@@ -158,6 +158,8 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                         except ValueError:
                             # Try full date format
                             dt = datetime.strptime(clean_value, "%d %B %Y")
+                    # Set time to midnight (00:00)
+                    dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
                     self._attr_native_value = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
                 except ValueError:
                     self._attr_native_value = None
@@ -171,6 +173,21 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                 LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
             except (ValueError, TypeError):
                 self._attr_native_value = state_value
+        elif self._sensor_type == SENSOR_VOLUME:
+            try:
+                if isinstance(state_value, str) and ';' in state_value:
+                    # Split the string and convert all values to floats
+                    values = [float(v.strip()) for v in state_value.split(';')]
+                    # Calculate average of all values
+                    self._attr_native_value = sum(values) / len(values)
+                    # Store all values as an attribute for reference
+                    self._attr_extra_state_attributes['individual_values'] = values
+                else:
+                    self._attr_native_value = float(state_value) if state_value is not None else None
+                LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
+            except (ValueError, TypeError) as e:
+                LOGGER.error("Error processing volume value '%s': %s", state_value, str(e))
+                self._attr_native_value = None
         else:
             self._attr_native_value = state_value
             
