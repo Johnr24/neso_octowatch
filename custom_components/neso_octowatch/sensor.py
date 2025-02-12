@@ -214,16 +214,18 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                             }
                         else:
                             self._attr_native_value = STATUS_UNKNOWN
+                            self._attr_extra_state_attributes = sensor_data.get("attributes", {})
                     else:
                         # If it's a single value, use it directly if it's a non-empty string
                         self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
+                        self._attr_extra_state_attributes = sensor_data.get("attributes", {})
                 except (ValueError, TypeError) as e:
                     LOGGER.error("Error processing time window value '%s': %s", state_value, str(e))
                     self._attr_native_value = STATUS_UNKNOWN
+                    self._attr_extra_state_attributes = sensor_data.get("attributes", {})
             else:
                 self._attr_native_value = state_value
-            
-            self._attr_extra_state_attributes = sensor_data.get("attributes", {})
+                self._attr_extra_state_attributes = sensor_data.get("attributes", {})
         
         self.async_write_ha_state()
 
