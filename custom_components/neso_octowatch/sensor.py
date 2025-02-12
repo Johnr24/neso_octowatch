@@ -85,6 +85,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_has_entity_name = True
             self._attr_translation_key = "time_window"
             self._attr_entity_registry_enabled_default = True
+            self._attr_state_class = SensorStateClass.MEASUREMENT
         elif sensor_type == SENSOR_PRICE:
             self._attr_native_unit_of_measurement = "GBP/MWh"
             self._attr_device_class = SensorDeviceClass.MONETARY
@@ -178,10 +179,13 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                 if isinstance(state_value, str) and ';' in state_value:
                     # Split the string and convert all values to floats
                     values = [float(v.strip()) for v in state_value.split(';')]
-                    # Calculate average of all values
-                    self._attr_native_value = sum(values) / len(values)
+                    # Use the most recent (last) value
+                    self._attr_native_value = values[-1]
                     # Store all values as an attribute for reference
-                    self._attr_extra_state_attributes['individual_values'] = values
+                    self._attr_extra_state_attributes = {
+                        **sensor_data.get("attributes", {}),
+                        'all_volumes': values
+                    }
                 else:
                     self._attr_native_value = float(state_value) if state_value is not None else None
                 LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
@@ -189,9 +193,25 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                 LOGGER.error("Error processing volume value '%s': %s", state_value, str(e))
                 self._attr_native_value = None
         else:
+            if self._sensor_type == SENSOR_TIME_WINDOW:
+                try:
+                    if isinstance(state_value, str) and ';' in state_value:
+                        # Split the string into time window values
+                        values = [v.strip() for v in state_value.split(';')]
+                        # Use the most recent (last) value
+                        self._attr_native_value = values[-1]
+                        # Store all values as an attribute for reference
+                        self._attr_extra_state_attributes = {
+                            **sensor_data.get("attributes", {}),
+                            'all_time_windows': values
+                        }
+                        return
+                except (ValueError, TypeError) as e:
+                    LOGGER.error("Error processing time window value '%s': %s", state_value, str(e))
+                    self._attr_native_value = None
             self._attr_native_value = state_value
             
-        self._attr_extra_state_attributes = sensor_data.get("attributes", {})
+            self._attr_extra_state_attributes = sensor_data.get("attributes", {})
         
         self.async_write_ha_state()
 
