@@ -69,6 +69,10 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_{sensor_type}"
         self._attr_native_unit_of_measurement = None
         self._attr_state_class = None
+        
+        # Initialize with coordinator data if available
+        if coordinator.data and sensor_type in coordinator.data:
+            self._handle_initial_state(coordinator.data[sensor_type])
 
         # Set appropriate device class and units based on sensor type
         if sensor_type == SENSOR_UTILIZATION:
@@ -76,7 +80,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_translation_key = "utilization"
             self._attr_entity_registry_enabled_default = True
             self._attr_device_class = None  # Text-based state
-            self._attr_native_value = STATUS_UNKNOWN  # Set initial state
+            # Initial state will be set by _handle_initial_state if data available
         elif sensor_type == SENSOR_DELIVERY_DATE:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
         elif sensor_type == SENSOR_TIME_WINDOW:
@@ -108,6 +112,107 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass.ENUM
             self._attr_state_class = None
 
+    def _handle_initial_state(self, sensor_data: dict) -> None:
+        """Handle the initial state setup for the sensor."""
+        if not sensor_data:
+            self._attr_native_value = None
+            return
+
+        state_value = sensor_data.get("state")
+        
+        # Process value based on sensor type
+        if self._sensor_type == SENSOR_UTILIZATION:
+            self._attr_native_value = state_value if state_value in VALID_STATUSES else STATUS_UNKNOWN
+        
+        elif self._sensor_type == SENSOR_DELIVERY_DATE:
+            self._process_delivery_date(state_value)
+        
+        elif self._sensor_type == SENSOR_TIME_WINDOW:
+            self._process_time_window(state_value, sensor_data.get("attributes", {}))
+        
+        elif self._sensor_type == SENSOR_VOLUME:
+            self._process_volume(state_value, sensor_data.get("attributes", {}))
+        
+        elif self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
+            try:
+                self._attr_native_value = float(state_value) if state_value is not None else None
+            except (ValueError, TypeError):
+                self._attr_native_value = None
+        
+        else:  # Default handling for other sensors
+            self._attr_native_value = state_value
+        
+        self._attr_extra_state_attributes = sensor_data.get("attributes", {})
+
+    def _process_delivery_date(self, state_value: str | None) -> None:
+        """Process delivery date value."""
+        if not isinstance(state_value, str):
+            self._attr_native_value = None
+            return
+            
+        try:
+            clean_value = state_value.split('+')[0].strip().split('.')[0].strip()
+            try:
+                dt = datetime.fromisoformat(clean_value)
+            except ValueError:
+                try:
+                    dt = datetime.strptime(clean_value, "%Y-%m-%d")
+                except ValueError:
+                    dt = datetime.strptime(clean_value, "%d %B %Y")
+            dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            self._attr_native_value = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
+        except ValueError:
+            self._attr_native_value = None
+
+    def _process_time_window(self, state_value: str | None, attributes: dict) -> None:
+        """Process time window value."""
+        if isinstance(state_value, str) and ';' in state_value:
+            values = [v.strip() for v in state_value.split(';')]
+            if values:
+                self._attr_native_value = values[-1]  # Use most recent
+                self._attr_extra_state_attributes = {
+                    **attributes,
+                    'all_time_windows': values
+                }
+            else:
+                self._attr_native_value = STATUS_UNKNOWN
+        else:
+            self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
+
+    def _process_volume(self, state_value: str | None, attributes: dict) -> None:
+        """Process volume value."""
+        if state_value == STATUS_UNKNOWN:
+            self._attr_native_value = None
+            return
+            
+        try:
+            if isinstance(state_value, str) and ';' in state_value:
+                pairs = [pair.strip() for pair in state_value.split(';') if pair.strip()]
+                values = []
+                for pair in pairs:
+                    if ',' in pair:
+                        actual = pair.split(',')[0].strip()
+                        values.append(float(actual))
+                
+                if values:
+                    self._attr_native_value = values[-1]  # Use most recent
+                    self._attr_extra_state_attributes = {
+                        **attributes,
+                        'all_volumes': values
+                    }
+                else:
+                    self._attr_native_value = None
+            elif state_value and str(state_value).strip():
+                if ',' in str(state_value):
+                    actual = str(state_value).split(',')[0].strip()
+                    self._attr_native_value = float(actual)
+                else:
+                    self._attr_native_value = float(str(state_value).strip())
+            else:
+                self._attr_native_value = None
+        except (ValueError, TypeError):
+            self._attr_native_value = None
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -118,132 +223,29 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         
         key = self._sensor_type
         if key not in self.coordinator.data:
-            if (self._sensor_type == SENSOR_DELIVERY_DATE and 
+            if (self._sensor_type == SENSOR_DELIVERY_DATE and
                 "octopus_dfs_session_highest_accepted" in self.coordinator.data):
                 # Try to get delivery date from highest accepted attributes
                 highest_accepted = self.coordinator.data["octopus_dfs_session_highest_accepted"]
                 if "attributes" in highest_accepted:
                     delivery_date = highest_accepted["attributes"].get("delivery_date")
                     if delivery_date:
-                        try:
-                            self._attr_native_value = datetime.fromisoformat(
-                                delivery_date.split('+')[0]
-                            ).replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
-                        except ValueError:
-                            self._attr_native_value = None
-            self._attr_extra_state_attributes = {}
+                        self._process_delivery_date(delivery_date)
+            else:
+                self._attr_extra_state_attributes = {}
+                self._attr_native_value = None
             return
 
-        sensor_data = self.coordinator.data[key]
-        state_value = sensor_data.get("state")
+        # Use the same processing logic as initial state
+        self._handle_initial_state(self.coordinator.data[key])
         
-        # Set state based on sensor type
+        # Log debug information for certain sensors
         if self._sensor_type == SENSOR_UTILIZATION:
-            if isinstance(state_value, str) and state_value in VALID_STATUSES:
-                self._attr_native_value = state_value
-            else:
-                self._attr_native_value = STATUS_UNKNOWN
             LOGGER.debug("Setting utilization state to: %s", self._attr_native_value)
-        
-        elif self._sensor_type == SENSOR_DELIVERY_DATE:
-            if isinstance(state_value, str):
-                try:
-                    clean_value = state_value.split('+')[0].strip().split('.')[0].strip()
-                    try:
-                        # Try ISO format first
-                        dt = datetime.fromisoformat(clean_value)
-                    except ValueError:
-                        try:
-                            # Try basic date format
-                            dt = datetime.strptime(clean_value, "%Y-%m-%d")
-                        except ValueError:
-                            # Try full date format
-                            dt = datetime.strptime(clean_value, "%d %B %Y")
-                    # Set time to midnight (00:00)
-                    dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
-                    self._attr_native_value = dt.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
-                except ValueError:
-                    self._attr_native_value = None
-            else:  # Not a string value
-                self._attr_native_value = state_value
-
         elif self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
-            try:
-                LOGGER.debug("Raw highest accepted bid value received: %s", state_value)
-                self._attr_native_value = float(state_value) if state_value is not None else None
-                LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
-            except (ValueError, TypeError):
-                self._attr_native_value = state_value
+            LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
         elif self._sensor_type == SENSOR_VOLUME:
-            try:
-                if state_value == STATUS_UNKNOWN:
-                    self._attr_native_value = None
-                    return
-                
-                if isinstance(state_value, str) and ';' in state_value:
-                    # Split into pairs and process each one
-                    pairs = [pair.strip() for pair in state_value.split(';') if pair.strip()]
-                    values = []
-                    for pair in pairs:
-                        if ',' in pair:
-                            # Each pair is "actual, target" - we want the actual value
-                            actual = pair.split(',')[0].strip()
-                            values.append(float(actual))
-                    
-                    if values:
-                        # Use the most recent (last) value
-                        self._attr_native_value = values[-1]
-                        # Store all values as an attribute for reference
-                        self._attr_extra_state_attributes = {
-                            **sensor_data.get("attributes", {}),
-                            'all_volumes': values
-                        }
-                    else:
-                        self._attr_native_value = None
-                else:
-                    # For single values, try to convert if it's not empty
-                    if state_value and str(state_value).strip():
-                        if ',' in str(state_value):
-                            # Single pair case
-                            actual = str(state_value).split(',')[0].strip()
-                            self._attr_native_value = float(actual)
-                        else:
-                            self._attr_native_value = float(str(state_value).strip())
-                    else:
-                        self._attr_native_value = None
-                
-                LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
-            except (ValueError, TypeError) as e:
-                LOGGER.error("Error processing volume value '%s': %s", state_value, str(e))
-                self._attr_native_value = None
-        else:
-            if self._sensor_type == SENSOR_TIME_WINDOW:
-                try:
-                    if isinstance(state_value, str) and ';' in state_value:
-                        # Split the string into time window values
-                        values = [v.strip() for v in state_value.split(';')]
-                        if values:
-                            # Use the most recent (last) value
-                            self._attr_native_value = values[-1]
-                            # Store all values as an attribute for reference
-                            self._attr_extra_state_attributes = {
-                                **sensor_data.get("attributes", {}),
-                                'all_time_windows': values
-                            }
-                        else:
-                            self._attr_native_value = STATUS_UNKNOWN
-                            self._attr_extra_state_attributes = sensor_data.get("attributes", {})
-                    else:
-                        # If it's a single value, use it directly if it's a non-empty string
-                        self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
-                        self._attr_extra_state_attributes = sensor_data.get("attributes", {})
-                except (ValueError, TypeError) as e:
-                    LOGGER.error("Error processing time window value '%s': %s", state_value, str(e))
-                    self._attr_native_value = STATUS_UNKNOWN
-                    self._attr_extra_state_attributes = sensor_data.get("attributes", {})
-            else:
-                self._attr_native_value = state_value
-                self._attr_extra_state_attributes = sensor_data.get("attributes", {})
+            LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
         
         self.async_write_ha_state()
 
