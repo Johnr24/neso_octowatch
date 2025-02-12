@@ -176,21 +176,28 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif self._sensor_type == SENSOR_VOLUME:
             try:
                 if isinstance(state_value, str) and ';' in state_value:
-                    # Split the string and convert all values to floats
-                    values = [float(v.strip()) for v in state_value.split(';')]
-                    # Use the most recent (last) value
-                    self._attr_native_value = values[-1]
-                    # Store all values as an attribute for reference
-                    self._attr_extra_state_attributes = {
-                        **sensor_data.get("attributes", {}),
-                        'all_volumes': values
-                    }
+                    # Split the string and convert non-empty values to floats
+                    values = [float(v.strip()) for v in state_value.split(';') if v.strip()]
+                    if values:
+                        # Use the most recent (last) value
+                        self._attr_native_value = values[-1]
+                        # Store all values as an attribute for reference
+                        self._attr_extra_state_attributes = {
+                            **sensor_data.get("attributes", {}),
+                            'all_volumes': values
+                        }
+                    else:
+                        self._attr_native_value = STATUS_UNKNOWN
                 else:
-                    self._attr_native_value = float(state_value) if state_value is not None else None
+                    # For single values, try to convert if it's not empty
+                    if state_value and str(state_value).strip():
+                        self._attr_native_value = float(str(state_value).strip())
+                    else:
+                        self._attr_native_value = STATUS_UNKNOWN
                 LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
             except (ValueError, TypeError) as e:
                 LOGGER.error("Error processing volume value '%s': %s", state_value, str(e))
-                self._attr_native_value = None
+                self._attr_native_value = STATUS_UNKNOWN
         else:
             if self._sensor_type == SENSOR_TIME_WINDOW:
                 try:
