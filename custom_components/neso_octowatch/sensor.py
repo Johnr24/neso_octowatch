@@ -92,8 +92,10 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == SENSOR_PRICE:
             self._attr_native_unit_of_measurement = "GBP/MWh"
             self._attr_device_class = SensorDeviceClass.MONETARY
-            self._attr_state_class = SensorStateClass.TOTAL
+            self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 2
+            self._attr_has_entity_name = True
+            self._attr_translation_key = "average_price"
         elif sensor_type == SENSOR_VOLUME:
             self._attr_native_unit_of_measurement = "MW"
             self._attr_device_class = SensorDeviceClass.POWER
@@ -133,6 +135,9 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif self._sensor_type == SENSOR_VOLUME:
             self._process_volume(state_value, sensor_data.get("attributes", {}))
         
+        elif self._sensor_type == SENSOR_PRICE:
+            self._process_price(state_value, sensor_data.get("attributes", {}))
+            
         elif self._sensor_type == SENSOR_HIGHEST_ACCEPTED:
             try:
                 self._attr_native_value = float(state_value) if state_value is not None else None
@@ -178,6 +183,32 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                 self._attr_native_value = STATUS_UNKNOWN
         else:
             self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
+
+    def _process_price(self, state_value: str | None, attributes: dict) -> None:
+        """Process price values and calculate average."""
+        if state_value == STATUS_UNKNOWN:
+            self._attr_native_value = None
+            return
+            
+        try:
+            if isinstance(state_value, str) and ';' in state_value:
+                prices = [float(price.strip()) for price in state_value.split(';') if price.strip()]
+                if prices:
+                    # Calculate average of all prices
+                    self._attr_native_value = sum(prices) / len(prices)
+                    self._attr_extra_state_attributes = {
+                        **attributes,
+                        'all_prices': prices,
+                        'price_count': len(prices)
+                    }
+                else:
+                    self._attr_native_value = None
+            elif state_value and str(state_value).strip():
+                self._attr_native_value = float(str(state_value).strip())
+            else:
+                self._attr_native_value = None
+        except (ValueError, TypeError):
+            self._attr_native_value = None
 
     def _process_volume(self, state_value: str | None, attributes: dict) -> None:
         """Process volume value."""
@@ -246,6 +277,10 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             LOGGER.debug("Setting highest accepted bid value to: %s", self._attr_native_value)
         elif self._sensor_type == SENSOR_VOLUME:
             LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
+        elif self._sensor_type == SENSOR_PRICE:
+            LOGGER.debug("Setting average price value to: %s", self._attr_native_value)
+            if hasattr(self, '_attr_extra_state_attributes') and self._attr_extra_state_attributes.get('price_count'):
+                LOGGER.debug("Average calculated from %d prices", self._attr_extra_state_attributes['price_count'])
         
         self.async_write_ha_state()
 
