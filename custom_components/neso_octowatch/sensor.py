@@ -93,6 +93,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == SENSOR_VOLUME:
             self._attr_native_unit_of_measurement = "MW"
             self._attr_device_class = SensorDeviceClass.POWER
+            self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
         elif sensor_type == SENSOR_HIGHEST_ACCEPTED:
             self._attr_native_unit_of_measurement = "GBP/MWh"
@@ -175,9 +176,20 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                 self._attr_native_value = state_value
         elif self._sensor_type == SENSOR_VOLUME:
             try:
+                if state_value == STATUS_UNKNOWN:
+                    self._attr_native_value = None
+                    return
+                
                 if isinstance(state_value, str) and ';' in state_value:
-                    # Split the string and convert non-empty values to floats
-                    values = [float(v.strip()) for v in state_value.split(';') if v.strip()]
+                    # Split into pairs and process each one
+                    pairs = [pair.strip() for pair in state_value.split(';') if pair.strip()]
+                    values = []
+                    for pair in pairs:
+                        if ',' in pair:
+                            # Each pair is "actual, target" - we want the actual value
+                            actual = pair.split(',')[0].strip()
+                            values.append(float(actual))
+                    
                     if values:
                         # Use the most recent (last) value
                         self._attr_native_value = values[-1]
@@ -187,17 +199,23 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                             'all_volumes': values
                         }
                     else:
-                        self._attr_native_value = STATUS_UNKNOWN
+                        self._attr_native_value = None
                 else:
                     # For single values, try to convert if it's not empty
                     if state_value and str(state_value).strip():
-                        self._attr_native_value = float(str(state_value).strip())
+                        if ',' in str(state_value):
+                            # Single pair case
+                            actual = str(state_value).split(',')[0].strip()
+                            self._attr_native_value = float(actual)
+                        else:
+                            self._attr_native_value = float(str(state_value).strip())
                     else:
-                        self._attr_native_value = STATUS_UNKNOWN
+                        self._attr_native_value = None
+                
                 LOGGER.debug("Setting volume value to: %s", self._attr_native_value)
             except (ValueError, TypeError) as e:
                 LOGGER.error("Error processing volume value '%s': %s", state_value, str(e))
-                self._attr_native_value = STATUS_UNKNOWN
+                self._attr_native_value = None
         else:
             if self._sensor_type == SENSOR_TIME_WINDOW:
                 try:
