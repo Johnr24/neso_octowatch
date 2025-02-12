@@ -44,7 +44,6 @@ async def async_setup_entry(
     
     # Force an initial refresh to ensure we have data before creating entities
     await coordinator.async_config_entry_first_refresh()
-    await coordinator.async_refresh()
 
     entities = []
     for sensor_type in [
@@ -198,18 +197,24 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
                     if isinstance(state_value, str) and ';' in state_value:
                         # Split the string into time window values
                         values = [v.strip() for v in state_value.split(';')]
-                        # Use the most recent (last) value
-                        self._attr_native_value = values[-1]
-                        # Store all values as an attribute for reference
-                        self._attr_extra_state_attributes = {
-                            **sensor_data.get("attributes", {}),
-                            'all_time_windows': values
-                        }
-                        return
+                        if values:
+                            # Use the most recent (last) value
+                            self._attr_native_value = values[-1]
+                            # Store all values as an attribute for reference
+                            self._attr_extra_state_attributes = {
+                                **sensor_data.get("attributes", {}),
+                                'all_time_windows': values
+                            }
+                        else:
+                            self._attr_native_value = STATUS_UNKNOWN
+                    else:
+                        # If it's a single value, use it directly if it's a non-empty string
+                        self._attr_native_value = state_value if isinstance(state_value, str) and state_value.strip() else STATUS_UNKNOWN
                 except (ValueError, TypeError) as e:
                     LOGGER.error("Error processing time window value '%s': %s", state_value, str(e))
-                    self._attr_native_value = None
-            self._attr_native_value = state_value
+                    self._attr_native_value = STATUS_UNKNOWN
+            else:
+                self._attr_native_value = state_value
             
             self._attr_extra_state_attributes = sensor_data.get("attributes", {})
         
