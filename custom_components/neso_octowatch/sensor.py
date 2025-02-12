@@ -84,7 +84,7 @@ class DfsSessionWatchSensor(CoordinatorEntity, SensorEntity):
             self._attr_has_entity_name = True
             self._attr_translation_key = "time_window"
             self._attr_entity_registry_enabled_default = True
-            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_state_class = None  # Text-based state, no measurement
         elif sensor_type == SENSOR_PRICE:
             self._attr_native_unit_of_measurement = "GBP/MWh"
             self._attr_device_class = SensorDeviceClass.MONETARY
