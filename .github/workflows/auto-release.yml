@@ -1,0 +1,36 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  check-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Get version from manifest
+        id: manifest
+        run: |
+          VERSION=$(jq -r .version custom_components/neso_octowatch/manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if manifest changed
+        id: changed
+        run: |
+          git diff HEAD^ HEAD --name-only | grep -q "manifest.json" && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: steps.changed.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.manifest.outputs.version }}
+          name: Release v${{ steps.manifest.outputs.version }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
